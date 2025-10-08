@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スーパーノート日記アプリ v3</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <header class="app-header">
+            <h1>スーパーノート日記 v3</h1>
+            <div class="sync-status" id="sync-status">
+                <span class="sync-indicator" id="sync-indicator">
+                    <span class="sync-dot"></span>
+                    <span id="sync-text">未設定</span>
+                </span>
+            </div>
+            <nav class="app-nav">
+                <button id="input-tab" class="nav-btn nav-btn--active">入力</button>
+                <button id="preview-tab" class="nav-btn">プレビュー</button>
+                <button id="settings-tab" class="nav-btn">設定</button>
+            </nav>
+        </header>
+
+        <!-- 入力画面 -->
+        <section id="input-screen" class="screen screen--active">
+            <div class="card">
+                <div class="card__body">
+                    <div class="form-group">
+                        <label for="week-select" class="form-label">週を選択</label>
+                        <input type="week" id="week-select" class="form-control" value="2024-W42">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weekly-goal" class="form-label">今週の目標</label>
+                        <textarea id="weekly-goal" class="form-control" rows="3" placeholder="今週の目標を入力してください"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">カスタム項目管理</label>
+                        <div class="custom-items-controls">
+                            <button id="manage-items-btn" class="btn btn--outline">項目をカスタマイズ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7日分の入力フォーム -->
+            <div id="daily-forms" class="daily-forms-container">
+                <!-- JavaScript で動的に生成 -->
+            </div>
+
+            <div class="action-buttons">
+                <button id="save-btn" class="btn btn--primary btn--full-width">保存</button>
+                <button id="preview-btn" class="btn btn--secondary btn--full-width mt-8">プレビュー</button>
+                <button id="sync-btn" class="btn btn--outline btn--full-width mt-8" disabled>データ同期</button>
+            </div>
+        </section>
+
+        <!-- プレビュー画面 -->
+        <section id="preview-screen" class="screen">
+            <div class="preview-actions">
+                <button id="export-btn" class="btn btn--primary">画像出力</button>
+                <button id="back-to-edit-btn" class="btn btn--outline">編集に戻る</button>
+            </div>
+
+            <div id="preview-content" class="preview-content">
+                <div class="preview-header">
+                    <h2 id="preview-week"></h2>
+                    <div class="preview-goal">
+                        <h3>今週の目標</h3>
+                        <p id="preview-goal-text"></p>
+                    </div>
+                </div>
+
+                <div class="preview-table-container">
+                    <table class="preview-table">
+                        <thead>
+                            <tr id="preview-table-header">
+                                <th>日付</th>
+                                <!-- カスタム項目のヘッダーがここに動的に生成される -->
+                                <th>感想</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preview-table-body">
+                            <!-- JavaScript で動的に生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 設定画面 -->
+        <section id="settings-screen" class="screen">
+            <div class="card">
+                <div class="card__body">
+                    <h2>GitHub連携設定</h2>
+                    
+                    <div class="form-group">
+                        <label for="github-token" class="form-label">Personal Access Token</label>
+                        <div class="token-input-group">
+                            <input type="password" id="github-token" class="form-control" placeholder="GitHub Personal Access Tokenを入力">
+                            <button id="toggle-token" class="btn btn--outline btn--sm" type="button">表示</button>
+                        </div>
+                        <small class="form-text">プライベートリポジトリへの書き込み権限が必要です</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="private-repo" class="form-label">プライベートリポジトリURL</label>
+                        <input type="url" id="private-repo" class="form-control" 
+                               placeholder="https://github.com/username/private-diary-data" 
+                               value="https://github.com/username/private-diary-data">
+                        <small class="form-text">データを保存するプライベートリポジトリのURL</small>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="auto-sync" checked>
+                            <label for="auto-sync">自動同期を有効にする</label>
+                        </div>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button id="save-settings-btn" class="btn btn--primary">設定を保存</button>
+                        <button id="test-connection-btn" class="btn btn--outline">接続テスト</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-8">
+                <div class="card__body">
+                    <h3>データ管理</h3>
+                    
+                    <div class="data-actions">
+                        <button id="export-data-btn" class="btn btn--secondary">データエクスポート</button>
+                        <button id="import-data-btn" class="btn btn--secondary">データインポート</button>
+                        <input type="file" id="import-file" accept=".json" style="display: none;">
+                    </div>
+                    
+                    <div class="sync-log">
+                        <h4>同期ログ</h4>
+                        <div id="sync-log-content" class="log-content">
+                            <p class="text-muted">同期ログはありません</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-8">
+                <div class="card__body">
+                    <h3>システム情報</h3>
+                    <div class="system-info">
+                        <img src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/56b74f23c667dec80d178dd0b348d499/dd0c8af0-e2c4-41ec-b422-ca3c328d7fd5/2c5673b4.png" 
+                             alt="GitHub Pages + Private Repository データ同期システム構成図" 
+                             style="max-width: 100%; height: auto; border-radius: var(--radius-base);">
+                        <p class="mt-8">Public GitHub Pagesアプリケーション → GitHub Actions → Private Repository の構成でセキュアなデータ管理を実現します。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- カスタム項目管理モーダル -->
+        <div id="items-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>カスタム項目管理</h3>
+                    <button id="close-modal" class="btn btn--outline btn--sm">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="new-item" class="form-label">新しい項目を追加</label>
+                        <div class="add-item-group">
+                            <input type="text" id="new-item" class="form-control" placeholder="項目名を入力">
+                            <button id="add-item-btn" class="btn btn--primary btn--sm">追加</button>
+                        </div>
+                    </div>
+                    
+                    <div class="current-items">
+                        <h4>現在の項目</h4>
+                        <div id="items-list" class="items-list">
+                            <!-- JavaScript で動的に生成 -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="reset-items-btn" class="btn btn--outline">デフォルトに戻す</button>
+                    <button id="save-items-btn" class="btn btn--primary">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- README セクション -->
+        <section id="readme-section" class="readme-section">
+            <div class="card">
+                <div class="card__body">
+                    <h2>スーパーノート日記アプリ v3</h2>
+                    
+                    <h3>新機能（v3）</h3>
+                    <ul>
+                        <li>GitHub Actions連携によるプライベートリポジトリへのデータ同期</li>
+                        <li>Personal Access Token による安全な認証</li>
+                        <li>カスタマイズ可能な項目管理</li>
+                        <li>◯・✖・△の3択評価システム</li>
+                        <li>データのエクスポート・インポート機能</li>
+                        <li>同期ステータス表示とログ機能</li>
+                        <li>設定画面での接続テスト機能</li>
+                    </ul>
+
+                    <h3>データ同期の仕組み</h3>
+                    <p>アプリケーションはPublic GitHub Pagesでホストされますが、日記データは別のPrivate Repositoryに安全に保存されます。GitHub ActionsがPublicリポジトリからデータを取得し、Privateリポジトリに同期する仕組みです。</p>
+
+                    <h3>セキュリティ</h3>
+                    <ul>
+                        <li>Personal Access Tokenは暗号化してLocalStorageに保存</li>
+                        <li>実際のGitHub API呼び出しはGitHub Actionsで実行</li>
+                        <li>クライアント側ではデータ準備のみ実行</li>
+                        <li>トークンは適切にマスクして表示</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
