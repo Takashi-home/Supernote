@@ -1207,12 +1207,23 @@ input[type="week"]::-webkit-calendar-picker-indicator {
   min-width: 140px;
 }
 
+/* プレビューコンテンツ - 画像出力用に最適化 */
 .preview-content {
   background-color: var(--color-surface);
   border: 1px solid var(--color-card-border);
   border-radius: var(--radius-lg);
   padding: var(--space-20);
   margin-bottom: var(--space-24);
+  position: relative;
+}
+
+/* 全体表示モード */
+.preview-content.full-display-mode {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  transform: scale(1);
+  transform-origin: top left;
 }
 
 .preview-header {
@@ -1242,17 +1253,32 @@ input[type="week"]::-webkit-calendar-picker-indicator {
   font-style: italic;
 }
 
-/* プレビューテーブル */
+/* プレビューテーブル - 全体表示対応 */
 .preview-table-container {
-  overflow-x: auto;
   border-radius: var(--radius-base);
   border: 1px solid var(--color-border);
+  overflow: visible;
+  width: 100%;
+}
+
+/* 全体表示モードでのテーブルコンテナ */
+.preview-content.full-display-mode .preview-table-container {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
 }
 
 .preview-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
+  table-layout: auto;
+}
+
+/* 全体表示モードでのテーブル */
+.preview-content.full-display-mode .preview-table {
+  height: auto !important;
+  max-height: none !important;
 }
 
 .preview-table th,
@@ -1261,6 +1287,7 @@ input[type="week"]::-webkit-calendar-picker-indicator {
   text-align: left;
   border-bottom: 1px solid var(--color-border);
   vertical-align: top;
+  word-wrap: break-word;
 }
 
 .preview-table th {
@@ -1270,6 +1297,11 @@ input[type="week"]::-webkit-calendar-picker-indicator {
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+/* 全体表示モードではstickyを無効化 */
+.preview-content.full-display-mode .preview-table th {
+  position: static;
 }
 
 .preview-table tbody tr:nth-child(odd) {
@@ -1315,6 +1347,12 @@ input[type="week"]::-webkit-calendar-picker-indicator {
   max-width: 200px;
   word-wrap: break-word;
   line-height: var(--line-height-normal);
+}
+
+/* 全体表示モードでのメモセル */
+.preview-content.full-display-mode .memo-cell {
+  max-width: none;
+  width: auto;
 }
 
 /* README セクション */
@@ -1536,4 +1574,31 @@ input[type="week"]::-webkit-calendar-picker-indicator {
   margin-top: var(--space-8);
   color: var(--color-success);
   font-size: var(--font-size-sm);
+}
+
+/* 画像出力時の調整用スタイル */
+.export-mode {
+  overflow: visible !important;
+}
+
+.export-mode .preview-content {
+  position: static !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.export-mode .preview-table-container {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.export-mode .preview-table {
+  height: auto !important;
+  max-height: none !important;
+}
+
+.export-mode .preview-table th {
+  position: static !important;
 }
