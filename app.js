@@ -1,4 +1,4 @@
-// スーパーノート日記アプリ v3 JavaScript
+// スーパーノート日記アプリ v3 JavaScript - 画像出力修正版
 
 class SuperNoteDiaryAppV3 {
     constructor() {
@@ -34,7 +34,7 @@ class SuperNoteDiaryAppV3 {
         // 3択評価のオプション
         this.checkOptions = [
             {value: "○", label: "○", color: "#22c55e", class: "success"},
-            {value: "✖", label: "✖", color: "#ef4444", class: "error"},
+            {value: "●", label: "●", color: "#ef4444", class: "error"},
             {value: "△", label: "△", color: "#f59e0b", class: "warning"}
         ];
         
@@ -51,6 +51,9 @@ class SuperNoteDiaryAppV3 {
         this.syncLogs = [];
         
         this.weekDays = ["月", "火", "水", "木", "金", "土", "日"];
+        
+        // 画像出力時の設定
+        this.exportInProgress = false;
         
         this.init();
     }
@@ -380,39 +383,177 @@ class SuperNoteDiaryAppV3 {
         return `<span class="status-symbol status-symbol--${option.class}">${option.label}</span>`;
     }
     
+    // 画像出力機能の改良版
     async exportImage() {
+        if (this.exportInProgress) return;
+        
         const exportBtn = document.getElementById('export-btn');
         const originalText = exportBtn.textContent;
         
         try {
-            exportBtn.textContent = '出力中...';
+            this.exportInProgress = true;
+            exportBtn.textContent = '画像準備中...';
             exportBtn.disabled = true;
             
             const element = document.getElementById('preview-content');
             
+            // 1. 全体表示モードに切り替え
+            await this.enableFullDisplayMode(element);
+            
+            // 2. DOM要素の計算を待つ
+            await this.waitForLayout();
+            
+            // 3. html2canvasの実行
+            exportBtn.textContent = '画像生成中...';
+            
+            // より詳細な設定でhtml2canvasを実行
             const canvas = await html2canvas(element, {
-                backgroundColor: '#ffffff',
-                scale: 2,
                 useCORS: true,
                 allowTaint: true,
+                scale: 2,
+                scrollX: 0,
+                scrollY: 0,
+                backgroundColor: '#ffffff',
+                removeContainer: false,
+                imageTimeout: 30000,
+                height: element.scrollHeight,
                 width: element.scrollWidth,
-                height: element.scrollHeight
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // クローンされたドキュメントでも全体表示モードを適用
+                    const clonedElement = clonedDoc.getElementById('preview-content');
+                    if (clonedElement) {
+                        clonedElement.classList.add('full-display-mode', 'export-mode');
+                        // スタイルの強制適用
+                        clonedElement.style.height = 'auto';
+                        clonedElement.style.maxHeight = 'none';
+                        clonedElement.style.overflow = 'visible';
+                        
+                        const clonedTableContainer = clonedElement.querySelector('.preview-table-container');
+                        if (clonedTableContainer) {
+                            clonedTableContainer.style.height = 'auto';
+                            clonedTableContainer.style.maxHeight = 'none';
+                            clonedTableContainer.style.overflow = 'visible';
+                        }
+                        
+                        const clonedTable = clonedElement.querySelector('.preview-table');
+                        if (clonedTable) {
+                            clonedTable.style.height = 'auto';
+                            clonedTable.style.maxHeight = 'none';
+                        }
+                        
+                        // sticky要素を通常の配置に変更
+                        const stickyHeaders = clonedElement.querySelectorAll('.preview-table th');
+                        stickyHeaders.forEach(header => {
+                            header.style.position = 'static';
+                        });
+                    }
+                }
             });
+            
+            // 4. 通常表示モードに復帰
+            this.disableFullDisplayMode(element);
+            
+            // 5. 画像のダウンロード
+            exportBtn.textContent = 'ダウンロード中...';
             
             const link = document.createElement('a');
             link.download = `スーパーノート日記_${this.data.week}.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
             
             this.showMessage('画像を出力しました', 'success');
             
         } catch (error) {
             console.error('画像出力エラー:', error);
-            this.showMessage('画像出力に失敗しました', 'error');
+            this.showMessage('画像出力に失敗しました: ' + error.message, 'error');
+            
+            // エラー時も通常表示モードに復帰
+            const element = document.getElementById('preview-content');
+            this.disableFullDisplayMode(element);
         } finally {
             exportBtn.textContent = originalText;
             exportBtn.disabled = false;
+            this.exportInProgress = false;
         }
+    }
+    
+    // 全体表示モードを有効にする
+    async enableFullDisplayMode(element) {
+        element.classList.add('full-display-mode', 'export-mode');
+        
+        // 強制的にスタイルを適用
+        element.style.height = 'auto';
+        element.style.maxHeight = 'none';
+        element.style.overflow = 'visible';
+        element.style.position = 'static';
+        
+        // テーブルコンテナの調整
+        const tableContainer = element.querySelector('.preview-table-container');
+        if (tableContainer) {
+            tableContainer.style.height = 'auto';
+            tableContainer.style.maxHeight = 'none';
+            tableContainer.style.overflow = 'visible';
+        }
+        
+        // テーブルの調整
+        const table = element.querySelector('.preview-table');
+        if (table) {
+            table.style.height = 'auto';
+            table.style.maxHeight = 'none';
+        }
+        
+        // sticky要素を通常の配置に変更
+        const stickyHeaders = element.querySelectorAll('.preview-table th');
+        stickyHeaders.forEach(header => {
+            header.style.position = 'static';
+        });
+        
+        // レイアウトの再計算を促す
+        element.offsetHeight;
+    }
+    
+    // 通常表示モードに復帰
+    disableFullDisplayMode(element) {
+        element.classList.remove('full-display-mode', 'export-mode');
+        
+        // インラインスタイルを削除
+        element.style.height = '';
+        element.style.maxHeight = '';
+        element.style.overflow = '';
+        element.style.position = '';
+        
+        const tableContainer = element.querySelector('.preview-table-container');
+        if (tableContainer) {
+            tableContainer.style.height = '';
+            tableContainer.style.maxHeight = '';
+            tableContainer.style.overflow = '';
+        }
+        
+        const table = element.querySelector('.preview-table');
+        if (table) {
+            table.style.height = '';
+            table.style.maxHeight = '';
+        }
+        
+        // sticky要素を元に戻す
+        const stickyHeaders = element.querySelectorAll('.preview-table th');
+        stickyHeaders.forEach(header => {
+            header.style.position = '';
+        });
+    }
+    
+    // レイアウト計算の完了を待つ
+    waitForLayout() {
+        return new Promise(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setTimeout(resolve, 100);
+                });
+            });
+        });
     }
     
     // カスタム項目管理
