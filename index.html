@@ -153,9 +153,6 @@
                 <div class="card__body">
                     <h3>システム情報</h3>
                     <div class="system-info">
-                        <img src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/56b74f23c667dec80d178dd0b348d499/dd0c8af0-e2c4-41ec-b422-ca3c328d7fd5/2c5673b4.png" 
-                             alt="GitHub Pages + Private Repository データ同期システム構成図" 
-                             style="max-width: 100%; height: auto; border-radius: var(--radius-base);">
                         <p class="mt-8">Public GitHub Pagesアプリケーション → GitHub Actions → Private Repository の構成でセキュアなデータ管理を実現します。</p>
                     </div>
                 </div>
@@ -203,10 +200,20 @@
                         <li>GitHub Actions連携によるプライベートリポジトリへのデータ同期</li>
                         <li>Personal Access Token による安全な認証</li>
                         <li>カスタマイズ可能な項目管理</li>
-                        <li>◯・✖・△の3択評価システム</li>
+                        <li>◯・●・△の3択評価システム</li>
                         <li>データのエクスポート・インポート機能</li>
                         <li>同期ステータス表示とログ機能</li>
                         <li>設定画面での接続テスト機能</li>
+                        <li><strong>改良された画像出力機能（全体表示対応）</strong></li>
+                    </ul>
+
+                    <h3>画像出力の改善点</h3>
+                    <ul>
+                        <li>プレビュー画面での全コンテンツ表示</li>
+                        <li>長いテーブルも完全に出力</li>
+                        <li>スクロール可能なコンテンツの全体キャプチャ</li>
+                        <li>高品質な画像生成（2倍スケール対応）</li>
+                        <li>出力中の視覚的フィードバック</li>
                     </ul>
 
                     <h3>データ同期の仕組み</h3>
@@ -219,6 +226,16 @@
                         <li>クライアント側ではデータ準備のみ実行</li>
                         <li>トークンは適切にマスクして表示</li>
                     </ul>
+
+                    <h3>使い方</h3>
+                    <ol>
+                        <li><strong>入力</strong>: 週選択、目標設定、各日の評価を入力</li>
+                        <li><strong>プレビュー</strong>: 入力内容を確認し、画像出力</li>
+                        <li><strong>設定</strong>: GitHub連携やデータ管理</li>
+                    </ol>
+
+                    <h3>画像出力について</h3>
+                    <p>プレビュー画面で「画像出力」ボタンをクリックすると、日記の全体が含まれた高品質な画像がダウンロードされます。出力時は自動的に全体表示モードに切り替わり、すべてのコンテンツが確実に含まれるよう調整されます。</p>
                 </div>
             </div>
         </section>
