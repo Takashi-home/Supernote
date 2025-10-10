@@ -1,0 +1,40 @@
+```yaml
+name: Save diary data to private repo
+
+on:
+  repository_dispatch:
+    types: [save-diary]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token: ${{ secrets.PAT_TOKEN }}
+          path: private
+
+      - name: Save JSON payload
+        env:
+          WEEK: ${{ github.event.client_payload.week }}
+          JSON: ${{ github.event.client_payload.data }}
+        run: |
+          mkdir -p private/data/weeks
+          echo "$JSON" > private/data/weeks/${WEEK}.json
+
+      - name: Commit & push
+        run: |
+          cd private
+          git config user.name "Diary Bot"
+          git config user.email "bot@example.com"
+          git add .
+          git commit -m "Save data $WEEK" || echo "No changes"
+          git push
+```
