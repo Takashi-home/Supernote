@@ -305,12 +305,90 @@ class SuperNoteDiaryAppV3 {
         return `${year}-${month}-${day}`;
     }
     
-    saveData() {
+    // 保存処理を非同期にし、保存時に GitHub に dispatch を送る処理を追加
+    async saveData() {
         this.data.goal = document.getElementById('weekly-goal').value;
         this.data.week = document.getElementById('week-select').value;
         
+        // ローカル保存（設定の保存も含む）
+        this.saveSettings();
+        
         this.showMessage('データを保存しました', 'success');
         this.updateSyncButton();
+
+        // 保存ボタンのイベントハンドラに追加：GitHub に保存（リポジトリの dispatch を呼ぶ）
+        // syncEnabled が true のときに自動で保存用 dispatch を送信する
+        if (this.syncSettings.syncEnabled && this.syncSettings.githubToken && this.syncSettings.privateRepoUrl) {
+            const weekData = {
+                week: this.data.week,
+                goal: this.data.goal,
+                dailyRecords: this.data.dailyRecords
+            };
+            try {
+                await this.saveToGitHub(weekData);
+                this.showMessage('GitHub に保存しました', 'success');
+                this.addSyncLog('success', 'GitHub への保存が完了しました');
+                // lastSync を更新
+                this.syncSettings.lastSync = new Date().toISOString();
+                this.saveSettings();
+                this.updateSyncStatus('connected');
+            } catch (error) {
+                console.error('GitHub保存エラー:', error);
+                this.showMessage('GitHubへの保存に失敗しました: ' + (error.message || error), 'error');
+                this.addSyncLog('error', 'GitHubへの保存に失敗しました: ' + (error.message || error));
+                this.updateSyncStatus('error');
+            }
+        }
+    }
+    
+    // GitHub の repository_dispatch を呼び出す
+    // syncSettings.privateRepoUrl から owner/repo を抽出して dispatch を送信する
+    async saveToGitHub(weekData) {
+        // privateRepoUrl が 'https://github.com/owner/repo' の形式であることを想定
+        const repoUrl = this.syncSettings.privateRepoUrl || '';
+        const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+        if (!match) {
+            throw new Error('無効なリポジトリ URL: ' + repoUrl);
+        }
+        const owner = match[1];
+        const repo = match[2];
+        const token = this.syncSettings.githubToken;
+        if (!token) {
+            throw new Error('GitHub トークンが設定されていません');
+        }
+        
+        const endpoint = `https://api.github.com/repos/${owner}/${repo}/dispatches`;
+        const payload = {
+            event_type: 'save-diary',
+            client_payload: {
+                week: weekData.week,
+                data: JSON.stringify(weekData)
+            }
+        };
+        
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!res.ok) {
+            // 可能ならばレスポンスの本文も取り出してエラーメッセージに含める
+            let bodyText = '';
+            try {
+                bodyText = await res.text();
+            } catch (e) {
+                bodyText = '<failed to read response body>';
+            }
+            throw new Error(`GitHub API エラー ${res.status}: ${bodyText}`);
+        }
+        
+        // 正常終了
+        return true;
     }
     
     showScreen(screenName) {
