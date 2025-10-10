@@ -34,7 +34,7 @@ class SuperNoteDiaryAppV3 {
         // 3択評価のオプション
         this.checkOptions = [
             {value: "○", label: "○", color: "#22c55e", class: "success"},
-            {value: "●", label: "●", color: "#ef4444", class: "error"},
+            {value: "✖️", label: "✖️", color: "#ef4444", class: "error"},
             {value: "△", label: "△", color: "#f59e0b", class: "warning"}
         ];
         
