@@ -1,0 +1,39 @@
+```yaml
+name: Sync diary data from private repo
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token: ${{ secrets.PAT_TOKEN }}
+          path: private
+
+      - name: Copy data
+        run: |
+          rm -rf public/data
+          mkdir -p public/data
+          cp -r private/data/weeks public/data/
+
+      - name: Commit and push
+        run: |
+          git config user.name "Diary Sync"
+          git config user.email "sync@example.com"
+          git add public/data
+          git commit -m "Sync diary data from private repo" || echo "No changes"
+          git push
+```
