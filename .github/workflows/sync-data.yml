@@ -1,4 +1,3 @@
-```yaml
 name: Sync diary data from private repo
 
 on:
@@ -36,4 +35,3 @@ jobs:
           git add public/data
           git commit -m "Sync diary data from private repo" || echo "No changes"
           git push
-```
