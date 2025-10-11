@@ -3,6 +3,8 @@ name: Sync diary data from private repo
 on:
   push:
     branches: [ main ]
+  schedule:
+    - cron: '0 */6 * * *'  # 6時間ごとに同期
 
 permissions:
   contents: write
@@ -10,10 +12,11 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout public repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Checkout private repo
         uses: actions/checkout@v4
@@ -22,16 +25,21 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
           path: private
 
-      - name: Copy data
+      - name: Create data directory and copy files
         run: |
-          rm -rf public/data
-          mkdir -p public/data
-          cp -r private/data/weeks public/data/
+          mkdir -p data/weeks
+          if [ -d "private/data/weeks" ]; then
+            cp -r private/data/weeks/* data/weeks/ 2>/dev/null || echo "No data files to copy"
+          fi
 
-      - name: Commit and push
+      - name: Commit and push synced data
         run: |
-          git config user.name "Diary Sync"
-          git config user.email "sync@example.com"
-          git add public/data
-          git commit -m "Sync diary data from private repo" || echo "No changes"
-          git push
+          git config user.name "Diary Sync Bot"
+          git config user.email "sync-bot@example.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No changes to sync"
+          else
+            git commit -m "Sync diary data from private repo - $(date '+%Y-%m-%d %H:%M:%S')"
+            git push
+          fi

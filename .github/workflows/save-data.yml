@@ -11,7 +11,6 @@ permissions:
 jobs:
   save:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout private repo
         uses: actions/checkout@v4
@@ -20,19 +19,20 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
           path: private
 
-      - name: Save JSON payload
-        env:
-          WEEK: ${{ github.event.client_payload.week }}
-          JSON: ${{ github.event.client_payload.data }}
+      - name: Create directory and save data
         run: |
           mkdir -p private/data/weeks
-          echo "$JSON" > private/data/weeks/${WEEK}.json
+          echo '${{ github.event.client_payload.data }}' > private/data/weeks/${{ github.event.client_payload.week }}.json
 
-      - name: Commit & push
+      - name: Commit and push to private repo
         run: |
           cd private
           git config user.name "Diary Bot"
           git config user.email "bot@example.com"
-          git add .
-          git commit -m "Save data $WEEK" || echo "No changes"
-          git push
+          git add data/weeks/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Save diary data for ${{ github.event.client_payload.week }}"
+            git push
+          fi
