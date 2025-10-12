@@ -1535,7 +1535,8 @@ select.form-control {
                             headers: {
                                 'Authorization': `Bearer ${token}`,
                                 'Accept': 'application/vnd.github+json'
-                            }
+                            },
+                            cache: 'no-store' // キャッシュを無効化して最新情報を取得
                         }
                     );
 
