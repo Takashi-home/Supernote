@@ -1209,8 +1209,34 @@ select.form-control {
             updateWeekDisplay() {
                 document.getElementById('currentWeek').textContent = this.currentWeek;
             }
+
+            //データが空かどうかをチェックする関数
+            isWeekDataEmpty(weekData) {
+                if (!weekData) return true;
+                if (weekData.goal && weekData.goal.trim() !== '') return false;
+                for (const record of weekData.dailyRecords) {
+                    for (const response of Object.values(record.responses)) {
+                        if (response && response.trim() !== '') return false;
+                    }
+                    if (record.reflection && record.reflection.trim() !== '') return false;
+                }
+                return true;
+            }
             
-            changeWeek(direction) {
+            async changeWeek(direction) {
+                    // 現在の週のデータを自動保存（GitHubに設定がある場合のみ）
+                if (this.syncSettings.githubToken && this.syncSettings.repoOwner && this.syncSettings.repoName) {
+                    // データが空でない場合のみ保存
+                    const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
+                    
+                    if (hasData) {
+                        this.showLoading();
+                        this.showSyncStatus('💾 自動保存中...', 'loading');
+                        await this.saveData();
+
+                    }
+                }
+
                 const [year, week] = this.currentWeek.split('-W');
                 let newWeek = parseInt(week) + direction;
                 let newYear = parseInt(year);
@@ -1225,6 +1251,7 @@ select.form-control {
                 
                 this.currentWeek = `${newYear}-W${String(newWeek).padStart(2, '0')}`;
                 this.updateWeekDisplay();
+                this.weekData = null; // 週変更時にデータをリセット
                 this.initializeWeekData();
                 this.renderDiary();
                 this.loadData(); // 週変更時にもデータ読込
@@ -1477,6 +1504,8 @@ select.form-control {
                         this.renderDiary();
                         this.showSyncStatus('✅ 同期完了', 'success');
                     } else {
+                        this.weekData = null;
+                        this.initializeWeekData();
                         this.showSyncStatus('ℹ️ 新規週', 'loading');
                     }
                 } catch (error) {
@@ -1487,32 +1516,68 @@ select.form-control {
             
             async saveToGitHub(weekData) {
                 const token = this.syncSettings.githubToken;
-                if (!token) {
+                const owner = this.syncSettings.repoOwner;
+                const repo = this.syncSettings.repoName;
+                if (!token || !owner || !repo) {
                     console.log('GitHub token not configured');
                     return false;
                 }
-                
+                const filePath = `data/weeks/${weekData.week}.json`;
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(weekData, null, 2))));
+        
+                // まず既存ファイルのSHAを取得（更新の場合に必要）
+                let sha = null;
+                try {
+                    const getResponse = await fetch(
+                        `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/vnd.github+json'
+                            }
+                        }
+                    );
+                    if (getResponse.ok) {
+                        const fileData = await getResponse.json();
+                        sha = fileData.sha;
+                    }
+                } catch (e) {
+                    // ファイルが存在しない場合は新規作成
+                    console.log('File does not exist, will create new');
+                }
+                // ファイルを作成または更新
+                const putData = {
+                    message: `Save diary data for ${weekData.week}`,
+                    content: content,
+                    branch: 'main'
+                };
+                if (sha) {
+                    putData.sha = sha; // 更新の場合はSHAを指定
+                }
                 try {
                     const response = await fetch(
-                        `https://api.github.com/repos/${this.syncSettings.repoOwner}/${this.syncSettings.repoName}/dispatches`,
+                        `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
                         {
-                            method: 'POST',
+                            method: 'PUT',
                             headers: {
                                 'Authorization': `Bearer ${token}`,
                                 'Accept': 'application/vnd.github+json',
-                                'X-GitHub-Api-Version': '2022-11-28'
+                                //'X-GitHub-Api-Version': '2022-11-28'
+                                'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({
-                                event_type: 'save-diary',
-                                client_payload: {
-                                    week: weekData.week,
-                                    data: JSON.stringify(weekData)
-                                }
-                            })
+                            body: JSON.stringify(putData)
                         }
                     );
-                    console.log('GitHub API response:', response);
-                    return response.ok;
+                    if (response.ok) {
+                        console.log('Successfully saved to GitHub');
+                        return true;
+                    } else {
+                        const errorData = await response.json();
+                        console.error('GitHub API error:', errorData);
+                        return false;
+                    }
+                    //console.log('GitHub API response:', response);
+                    //return response.ok;
                 } catch (error) {
                     console.error('GitHub API error:', error);
                     return false;
@@ -1520,17 +1585,40 @@ select.form-control {
             }
             
             async loadWeekData(week) {
+                const token = this.syncSettings.githubToken;
+                const owner = this.syncSettings.repoOwner;
+                const repo = this.syncSettings.repoName;
+                if (!token || !owner || !repo) {
+                    console.log('GitHub settings not configured');
+                    return null;
+                }
+
                 try {
-                    // 実際の実装では、GitHub APIや専用エンドポイントからデータを取得
-                    // ここではサンプルとして、fetch APIを使用した例を示す
-                    const response = await fetch(`./data/weeks/${week}.json`);
+                    const filePath = `data/weeks/${week}.json`;
+                    const response = await fetch(
+                        `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/vnd.github.raw'
+                            }
+                        }
+                    );
+
                     if (response.ok) {
-                        return await response.json();
+                        const data = await response.json();
+                        console.log('Successfully loaded from GitHub');
+                        return data;
+                    } else if (response.status === 404) {
+                        console.log('No saved data found for week:', week);
+                        return null;
+                    } else {
+                        throw new Error(`GitHub API error: ${response.status}`);
                     }
                 } catch (error) {
                     console.log('No saved data found for week:', week);
+                    return null;
                 }
-                return null;
             }
             
             async exportAsImage() {
@@ -1591,7 +1679,6 @@ select.form-control {
                 const statusElement = document.getElementById('syncStatus');
                 statusElement.textContent = message;
                 statusElement.className = `sync-status ${type}`;
-                
                 // 3秒後に消去（successとerrorの場合）
                 if (type !== 'loading') {
                     setTimeout(() => {
