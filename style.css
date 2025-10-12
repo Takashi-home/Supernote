@@ -658,45 +658,64 @@ select.form-control {
     margin: 0;
 }
 
-.evaluation-buttons {
+/* ラジオボタンスタイル */
+.rating-group {
     display: flex;
     gap: var(--space-4);
 }
 
-.eval-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    cursor: pointer;
-    font-size: var(--font-size-lg);
+.rating-option {
+    position: relative;
+}
+
+.rating-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.rating-option label {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
+    cursor: pointer;
+    font-size: var(--font-size-lg);
     transition: all var(--duration-fast) var(--ease-standard);
+    user-select: none;
 }
 
-.eval-btn:hover {
+.rating-option label:hover {
     background: var(--color-secondary);
+    transform: scale(1.05);
 }
 
-.eval-btn.active {
-    background: var(--color-primary);
-    color: var(--color-btn-primary-text);
-    border-color: var(--color-primary);
+.rating-option input[type="radio"]:checked + label {
+    border-width: 3px;
+    font-weight: bold;
+    transform: scale(1.1);
 }
 
-.eval-btn.success {
-    background: rgba(var(--color-success-rgb), 0.1);
+.rating-option--success input[type="radio"]:checked + label {
+    background: rgba(var(--color-success-rgb), 0.2);
     color: var(--color-success);
     border-color: var(--color-success);
 }
 
-.eval-btn.error {
-    background: rgba(var(--color-error-rgb), 0.1);
+.rating-option--error input[type="radio"]:checked + label {
+    background: rgba(var(--color-error-rgb), 0.2);
     color: var(--color-error);
     border-color: var(--color-error);
+}
+
+.rating-option--warning input[type="radio"]:checked + label {
+    background: rgba(247, 158, 11, 0.2);
+    color: #f59e0b;
+    border-color: #f59e0b;
 }
 
 .eval-btn.warning {

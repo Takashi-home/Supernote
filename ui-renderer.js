@@ -45,20 +45,25 @@ class UIRenderer {
         dayEntry.innerHTML = `
             <h4>${formattedDate} (${record.dayOfWeek})</h4>
             <div class="evaluation-grid">
-                ${this.app.evaluationItems.map((item, itemIndex) => `
-                    <div class="evaluation-item">
+                ${this.app.evaluationItems.map((item, itemIndex) => {
+                    const safeItemId = `item-${dayIndex}-${itemIndex}`;
+                    return `
+                    <div class="evaluation-item" data-item="${this.escapeHtml(item)}" data-day="${dayIndex}">
                         <label>${this.escapeHtml(item)}</label>
-                        <div class="evaluation-buttons" data-day="${dayIndex}" data-item-index="${itemIndex}">
+                        <div class="rating-group">
                             ${this.app.checkOptions.map(option => `
-                                <button type="button" 
-                                        class="eval-btn ${option.class} ${record.responses[item] === option.value ? 'active' : ''}" 
-                                        data-value="${this.escapeHtml(option.value)}">
-                                    ${option.value}
-                                </button>
+                                <div class="rating-option rating-option--${option.class}">
+                                    <input type="radio" 
+                                           id="${safeItemId}-${option.class}" 
+                                           name="${safeItemId}" 
+                                           value="${option.value}"
+                                           ${record.responses[item] === option.value ? 'checked' : ''}>
+                                    <label for="${safeItemId}-${option.class}">${option.value}</label>
+                                </div>
                             `).join('')}
                         </div>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
             <div class="reflection-field">
                 <label class="form-label">感想・気づき</label>
@@ -68,16 +73,16 @@ class UIRenderer {
             </div>
         `;
         
-        // 評価ボタンのイベントリスナーを追加
-        dayEntry.querySelectorAll('.evaluation-buttons').forEach(buttonGroup => {
-            const dayIdx = parseInt(buttonGroup.dataset.day);
-            const itemIdx = parseInt(buttonGroup.dataset.itemIndex);
-            const item = this.app.evaluationItems[itemIdx];
-            
-            buttonGroup.querySelectorAll('.eval-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const value = btn.dataset.value;
-                    this.app.setEvaluation(dayIdx, item, value);
+        // ラジオボタンのイベントリスナーを追加
+        dayEntry.querySelectorAll('.evaluation-item').forEach((evalItem) => {
+            const item = evalItem.dataset.item;
+            const dayIdx = parseInt(evalItem.dataset.day);
+            const radioInputs = evalItem.querySelectorAll('input[type="radio"]');
+            radioInputs.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        this.app.setEvaluation(dayIdx, item, e.target.value);
+                    }
                 });
             });
         });

@@ -208,13 +208,7 @@ class DiaryApp {
     // ==================== データ入力 ====================
 
     setEvaluation(dayIndex, item, value) {
-        // 同じ値の場合は空にする（トグル機能）
-        if (this.weekData.dailyRecords[dayIndex].responses[item] === value) {
-            this.weekData.dailyRecords[dayIndex].responses[item] = '';
-        } else {
-            this.weekData.dailyRecords[dayIndex].responses[item] = value;
-        }
-        this.uiRenderer.renderDiary();
+        this.weekData.dailyRecords[dayIndex].responses[item] = value;
     }
 
     setReflection(dayIndex, value) {
