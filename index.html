@@ -1150,6 +1150,21 @@ select.form-control {
                 this.renderDiary();
                 this.loadData(); // アプリ起動時に同期データを自動読込
                 this.loadSettings();
+                // ページを閉じる前に自動保存
+                window.addEventListener('beforeunload', async (e) => {
+                    if (this.syncSettings.githubToken && this.syncSettings.repoOwner && this.syncSettings.repoName) {
+                        const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
+                        
+                        if (hasData) {
+                            // データがある場合は保存を試みる
+                            e.preventDefault();
+                            e.returnValue = ''; // Chrome用
+                            
+                            // 非同期保存を実行
+                            await this.saveData();
+                        }
+                    }
+                });
             }
             
             getCurrentWeek() {
@@ -1439,6 +1454,10 @@ select.form-control {
                 
                 this.showStatusMessage('設定が保存されました', 'success');
                 this.hideSettings();
+                //設定保存後、GitHubからデータを同期
+                if (this.syncSettings.githubToken && this.syncSettings.repoOwner && this.syncSettings.repoName) {
+                    this.loadData();
+                }
             }
             
             loadSettings() {
