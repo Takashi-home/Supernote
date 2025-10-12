@@ -532,7 +532,7 @@ select.form-control {
   display: block;
 }
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Accessibility */
@@ -1144,6 +1144,7 @@ select.form-control {
             }
             
             init() {
+                this.hideLoading();
                 this.updateWeekDisplay();
                 this.initializeWeekData();
                 this.renderDiary();
@@ -1510,6 +1511,7 @@ select.form-control {
                             })
                         }
                     );
+                    console.log('GitHub API response:', response);
                     return response.ok;
                 } catch (error) {
                     console.error('GitHub API error:', error);
