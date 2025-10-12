@@ -35,6 +35,9 @@ class DiaryApp {
         ];
 
         this.evaluationItems = [...this.defaultItems.slice(1)]; // "今週の目標"を除く
+        
+        // 最後に使用した項目リスト（セッション中のキャッシュ）
+        this.lastUsedItems = null;
 
         this.checkOptions = [
             { value: '⭕️', label: '⭕️', color: '#22c55e', class: 'success' },
@@ -56,6 +59,9 @@ class DiaryApp {
         this.uiRenderer.renderDiary();
         this.loadData(); // アプリ起動時に同期データを自動読込
         this.loadSettings();
+        
+        // 初期表示を設定画面にする
+        this.showSettings();
         
         // ページを閉じる前に自動保存
         window.addEventListener('beforeunload', async (e) => {
@@ -123,11 +129,51 @@ class DiaryApp {
 
     // ==================== データ管理 ====================
 
+    /**
+     * weekDataから評価項目を読み込む
+     * 優先順位: evaluationItems > responsesのキー > lastUsedItems > デフォルト
+     */
+    loadEvaluationItems(weekData) {
+        if (weekData.evaluationItems && weekData.evaluationItems.length > 0) {
+            // 新形式: 明示的に保存された項目
+            this.evaluationItems = [...weekData.evaluationItems];
+        } else if (weekData.dailyRecords && weekData.dailyRecords.length > 0) {
+            // 旧形式: responsesのキーから抽出
+            const itemsSet = new Set();
+            weekData.dailyRecords.forEach(record => {
+                if (record.responses) {
+                    Object.keys(record.responses).forEach(item => {
+                        itemsSet.add(item);
+                    });
+                }
+            });
+            if (itemsSet.size > 0) {
+                this.evaluationItems = Array.from(itemsSet);
+            } else if (this.lastUsedItems && this.lastUsedItems.length > 0) {
+                // 前回使用した項目
+                this.evaluationItems = [...this.lastUsedItems];
+            } else {
+                // デフォルト項目
+                this.evaluationItems = [...this.defaultItems.slice(1)];
+            }
+        } else if (this.lastUsedItems && this.lastUsedItems.length > 0) {
+            // データなし、前回使用した項目を使用
+            this.evaluationItems = [...this.lastUsedItems];
+        } else {
+            // データなし、デフォルト項目を使用
+            this.evaluationItems = [...this.defaultItems.slice(1)];
+        }
+        
+        // lastUsedItemsを更新
+        this.lastUsedItems = [...this.evaluationItems];
+    }
+
     initializeWeekData() {
         if (!this.weekData) {
             this.weekData = {
                 week: this.currentWeek,
                 goal: '',
+                evaluationItems: this.evaluationItems, // 項目を明示的に保存
                 dailyRecords: this.generateDailyRecords()
             };
         }
@@ -223,6 +269,8 @@ class DiaryApp {
 
         if (newItem && !this.evaluationItems.includes(newItem)) {
             this.evaluationItems.push(newItem);
+            // lastUsedItemsを更新
+            this.lastUsedItems = [...this.evaluationItems];
             input.value = '';
             this.uiRenderer.renderSettings();
             this.initializeWeekData();
@@ -232,6 +280,8 @@ class DiaryApp {
 
     removeItem(index) {
         this.evaluationItems.splice(index, 1);
+        // lastUsedItemsを更新
+        this.lastUsedItems = [...this.evaluationItems];
         this.uiRenderer.renderSettings();
         this.initializeWeekData();
         this.uiRenderer.renderDiary();
@@ -240,6 +290,8 @@ class DiaryApp {
     resetToDefaults() {
         if (confirm('デフォルト設定に戻しますか？現在の項目はすべて削除されます。')) {
             this.evaluationItems = [...this.defaultItems.slice(1)];
+            // lastUsedItemsを更新
+            this.lastUsedItems = [...this.evaluationItems];
             this.uiRenderer.renderSettings();
             this.initializeWeekData();
             this.uiRenderer.renderDiary();
@@ -286,6 +338,9 @@ class DiaryApp {
     async saveData() {
         this.uiRenderer.showLoading();
         
+        // 保存前に最新の評価項目をweekDataに反映
+        this.weekData.evaluationItems = [...this.evaluationItems];
+        
         try {
             const success = await this.githubSync.saveToGitHub(this.weekData);
             if (success) {
@@ -308,10 +363,13 @@ class DiaryApp {
             const data = await this.githubSync.loadWeekData(this.currentWeek);
             if (data) {
                 this.weekData = data;
+                // データから評価項目を読み込む
+                this.loadEvaluationItems(data);
                 this.uiRenderer.renderDiary();
                 this.uiRenderer.showSyncStatus('✅ 同期完了', 'success');
             } else {
                 this.weekData = null;
+                // 新規週の場合、前回使用した項目またはデフォルトを使用
                 this.initializeWeekData();
                 this.uiRenderer.showSyncStatus('ℹ️ 新規週', 'loading');
             }
