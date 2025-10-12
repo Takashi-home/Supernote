@@ -1528,6 +1528,7 @@ select.form-control {
                 // まず既存ファイルのSHAを取得（更新の場合に必要）
                 let sha = null;
                 try {
+                    console.log('Checking for existing file:', filePath);
                     const getResponse = await fetch(
                         `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
                         {
@@ -1537,14 +1538,28 @@ select.form-control {
                             }
                         }
                     );
+
+                    console.log('GET response status:', getResponse.status);
+
                     if (getResponse.ok) {
                         const fileData = await getResponse.json();
+                        console.log('📦 File data received:', fileData); // デバッグ: 全データを表示
+                        console.log('🔍 Looking for SHA in:', Object.keys(fileData)); // キー一覧
                         sha = fileData.sha;
+                        console.log('✅ Found existing file, SHA:', sha);
+                    } else if (getResponse.status === 404) {
+                        console.log('ℹ️ File does not exist, will create new');
+                    } else {
+                        console.warn('⚠️ Unexpected status:', getResponse.status);
+                        const errorData = await getResponse.json();
+                        console.warn('Error data:', errorData);
                     }
                 } catch (e) {
                     // ファイルが存在しない場合は新規作成
                     console.log('File does not exist, will create new');
                 }
+
+                console.log('SHA before PUT:', sha);
                 // ファイルを作成または更新
                 const putData = {
                     message: `Save diary data for ${weekData.week}`,
