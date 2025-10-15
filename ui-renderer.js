@@ -23,10 +23,88 @@ class UIRenderer {
         const container = document.getElementById('dailyEntries');
         container.innerHTML = '';
 
-        this.app.weekData.dailyRecords.forEach((record, dayIndex) => {
-            const dayEntry = this.createDayEntry(record, dayIndex);
-            container.appendChild(dayEntry);
+        // 週間サマリーを表示
+        const weekSummary = this.createWeekSummary();
+        container.appendChild(weekSummary);
+
+        // 日別ナビゲーションを表示
+        const dayNavigation = this.createDayNavigation();
+        container.appendChild(dayNavigation);
+
+        // 現在選択中の日のエントリーのみを表示
+        const currentRecord = this.app.weekData.dailyRecords[this.app.currentDayIndex];
+        const dayEntry = this.createDayEntry(currentRecord, this.app.currentDayIndex);
+        container.appendChild(dayEntry);
+    }
+
+    /**
+     * 週間サマリーを作成
+     * @returns {HTMLElement} - 週間サマリー要素
+     */
+    createWeekSummary() {
+        const summary = document.createElement('div');
+        summary.className = 'week-summary';
+        
+        let html = '<h4>今週の記録</h4><div class="week-summary-grid">';
+        
+        this.app.weekData.dailyRecords.forEach((record, index) => {
+            const date = new Date(record.date);
+            const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+            const isActive = index === this.app.currentDayIndex;
+            
+            // 各評価の数をカウント
+            const counts = { '⭕️': 0, '✖️': 0, '△': 0 };
+            Object.values(record.responses).forEach(value => {
+                if (counts.hasOwnProperty(value)) {
+                    counts[value]++;
+                }
+            });
+            
+            html += `
+                <div class="week-summary-day ${isActive ? 'active' : ''}" onclick="diaryApp.currentDayIndex = ${index}; diaryApp.uiRenderer.renderDiary();">
+                    <div class="summary-date">${formattedDate}(${record.dayOfWeek})</div>
+                    <div class="summary-counts">
+                        <span class="count-success">⭕️${counts['⭕️']}</span>
+                        <span class="count-error">✖️${counts['✖️']}</span>
+                        <span class="count-warning">△${counts['△']}</span>
+                    </div>
+                </div>
+            `;
         });
+        
+        html += '</div>';
+        summary.innerHTML = html;
+        
+        return summary;
+    }
+
+    /**
+     * 日別ナビゲーションを作成
+     * @returns {HTMLElement} - 日別ナビゲーション要素
+     */
+    createDayNavigation() {
+        const navigation = document.createElement('div');
+        navigation.className = 'day-navigation';
+        
+        const currentRecord = this.app.weekData.dailyRecords[this.app.currentDayIndex];
+        const date = new Date(currentRecord.date);
+        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+        
+        navigation.innerHTML = `
+            <button class="btn btn--secondary btn--sm" 
+                    onclick="diaryApp.changeDay(-1)" 
+                    ${this.app.currentDayIndex === 0 ? 'disabled' : ''}>
+                ← 前日
+            </button>
+            <span class="current-day">${formattedDate} (${currentRecord.dayOfWeek})</span>
+            <button class="btn btn--secondary btn--sm" 
+                    onclick="diaryApp.changeDay(1)"
+                    ${this.app.currentDayIndex === 6 ? 'disabled' : ''}>
+                次日 →
+            </button>
+        `;
+        
+        return navigation;
     }
 
     /**
@@ -98,7 +176,7 @@ class UIRenderer {
     }
 
     /**
-     * プレビュー画面を描画
+     * プレビュー画面を描画（項目を行、日付を列に配置）
      */
     renderPreview() {
         const container = document.getElementById('previewContent');
@@ -109,34 +187,49 @@ class UIRenderer {
                 <p>期間: ${this.app.currentWeek}</p>
             </div>
             
-            <table class="preview-table">
-                <thead>
-                    <tr>
-                        <th class="date-cell">日付</th>
+            <div class="preview-table-wrapper">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th class="item-cell">評価項目</th>
+                            ${this.app.weekData.dailyRecords.map(record => {
+                                const date = new Date(record.date);
+                                const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+                                return `<th class="date-cell">${formattedDate}<br/>(${record.dayOfWeek})</th>`;
+                            }).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
                         ${this.app.evaluationItems.map(item => {
-                            const displayText = item.length > 10 ? item.substring(0, 10) + '...' : item;
-                            return `<th class="eval-cell">${this.escapeHtml(displayText)}</th>`;
+                            const displayText = item.length > 15 ? item.substring(0, 15) + '...' : item;
+                            return `
+                                <tr>
+                                    <td class="item-cell" title="${this.escapeHtml(item)}">${this.escapeHtml(displayText)}</td>
+                                    ${this.app.weekData.dailyRecords.map(record => `
+                                        <td class="eval-cell">${record.responses[item] || '-'}</td>
+                                    `).join('')}
+                                </tr>
+                            `;
                         }).join('')}
-                        <th class="reflection-cell">感想・気づき</th>
-                    </tr>
-                </thead>
-                <tbody>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="reflections-section">
+                <h4>感想・気づき</h4>
+                <div class="reflections-grid">
                     ${this.app.weekData.dailyRecords.map(record => {
                         const date = new Date(record.date);
                         const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-                        
                         return `
-                            <tr>
-                                <td class="date-cell">${formattedDate}(${record.dayOfWeek})</td>
-                                ${this.app.evaluationItems.map(item => `
-                                    <td class="eval-cell">${record.responses[item] || ''}</td>
-                                `).join('')}
-                                <td class="reflection-cell">${this.escapeHtml(record.reflection) || ''}</td>
-                            </tr>
+                            <div class="reflection-item">
+                                <div class="reflection-date">${formattedDate}(${record.dayOfWeek})</div>
+                                <div class="reflection-text">${this.escapeHtml(record.reflection) || '記録なし'}</div>
+                            </div>
                         `;
                     }).join('')}
-                </tbody>
-            </table>
+                </div>
+            </div>
         `;
         
         container.innerHTML = html;

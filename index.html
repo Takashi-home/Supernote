@@ -15,9 +15,9 @@
         <header class="app-header">
             <h1>スーパーノート日記アプリ</h1>
             <div class="navigation">
-                <button class="btn btn--primary" onclick="diaryApp.showDiary()">日記入力</button>
-                <button class="btn btn--secondary" onclick="diaryApp.showPreview()">プレビュー</button>
-                <button class="btn btn--outline" onclick="diaryApp.showSettings()">設定</button>
+                <button class="btn btn--tab" onclick="diaryApp.showDiary()">日記入力</button>
+                <button class="btn btn--tab" onclick="diaryApp.showPreview()">プレビュー</button>
+                <button class="btn btn--tab" onclick="diaryApp.showSettings()">設定</button>
             </div>
         </header>
 
@@ -49,8 +49,6 @@
 
         <!-- 操作ボタン -->
         <div class="actions">
-            <button class="btn btn--primary" onclick="diaryApp.saveData()">保存</button>
-            <button class="btn btn--secondary" onclick="diaryApp.loadData()">同期</button>
             <button class="btn btn--outline" onclick="diaryApp.exportAsImage()">画像出力</button>
             <button class="btn btn--outline" onclick="window.print()">印刷</button>
         </div>

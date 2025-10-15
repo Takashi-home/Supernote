@@ -5,6 +5,7 @@ class DiaryApp {
         // 現在の週
         this.currentWeek = this.getCurrentWeek();
         this.currentView = 'diary';
+        this.currentDayIndex = 0; // 現在選択中の日のインデックス（0-6）
         this.weekData = null;
         
         // 同期設定
@@ -57,6 +58,7 @@ class DiaryApp {
         this.updateWeekDisplay();
         this.initializeWeekData();
         this.uiRenderer.renderDiary();
+        this.updateNavigationButtons(); // ナビゲーションボタンの初期状態を設定
         this.loadData(); // アプリ起動時に同期データを自動読込
         this.loadSettings();
         
@@ -232,6 +234,7 @@ class DiaryApp {
         this.currentView = 'diary';
         document.getElementById('diaryView').classList.remove('hidden');
         document.getElementById('previewView').classList.add('hidden');
+        this.updateNavigationButtons();
         this.uiRenderer.renderDiary();
     }
 
@@ -239,16 +242,49 @@ class DiaryApp {
         this.currentView = 'preview';
         document.getElementById('diaryView').classList.add('hidden');
         document.getElementById('previewView').classList.remove('hidden');
+        this.updateNavigationButtons();
         this.uiRenderer.renderPreview();
     }
 
     showSettings() {
+        this.currentView = 'settings';
         document.getElementById('settingsModal').classList.remove('hidden');
+        this.updateNavigationButtons();
         this.uiRenderer.renderSettings();
     }
 
     hideSettings() {
         document.getElementById('settingsModal').classList.add('hidden');
+        // モーダルを閉じた時は日記画面に戻る
+        if (this.currentView === 'settings') {
+            this.showDiary();
+        }
+    }
+
+    updateNavigationButtons() {
+        // すべてのナビゲーションボタンからactiveクラスを削除
+        document.querySelectorAll('.navigation .btn').forEach(btn => {
+            btn.classList.remove('btn--active');
+        });
+        
+        // 現在のビューに対応するボタンにactiveクラスを追加
+        if (this.currentView === 'diary') {
+            document.querySelector('.navigation .btn[onclick*="showDiary"]').classList.add('btn--active');
+        } else if (this.currentView === 'preview') {
+            document.querySelector('.navigation .btn[onclick*="showPreview"]').classList.add('btn--active');
+        } else if (this.currentView === 'settings') {
+            document.querySelector('.navigation .btn[onclick*="showSettings"]').classList.add('btn--active');
+        }
+    }
+
+    changeDay(direction) {
+        const newIndex = this.currentDayIndex + direction;
+        
+        // 範囲チェック（0-6の範囲内）
+        if (newIndex >= 0 && newIndex < 7) {
+            this.currentDayIndex = newIndex;
+            this.uiRenderer.renderDiary();
+        }
     }
 
     // ==================== データ入力 ====================
