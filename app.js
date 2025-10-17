@@ -59,11 +59,23 @@ class DiaryApp {
         this.initializeWeekData();
         this.uiRenderer.renderDiary();
         this.updateNavigationButtons(); // ナビゲーションボタンの初期状態を設定
-        this.loadData(); // アプリ起動時に同期データを自動読込
+        
+        // 設定を読み込み
         this.loadSettings();
         
-        // 初期表示を設定画面にする
-        this.showSettings();
+        // 設定が保存されているかチェック
+        const hasSettings = this.syncSettings.githubToken && 
+                           this.syncSettings.repoOwner && 
+                           this.syncSettings.repoName;
+        
+        if (hasSettings) {
+            // 設定がある場合は日記入力画面を表示してデータを読み込み
+            this.showDiary();
+            this.loadData();
+        } else {
+            // 設定がない場合は設定画面を表示
+            this.showSettings();
+        }
         
         // ページを閉じる前/リロード前に自動保存
         window.addEventListener('beforeunload', (e) => {
