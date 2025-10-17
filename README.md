@@ -1,382 +1,269 @@
-# スーパーノート日記アプリ v3 - GitHub Actionsデータ同期システム
+# スーパーノート日記アプリ
 
-プライベートリポジトリとの自動データ同期機能を追加したスーパーノート日記アプリです。GitHub Pagesでフロントエンドを公開し、GitHub Actionsを使用してプライベートリポジトリにセキュアにデータを保存します。
+毎日の目標達成度を⭕✖△で記録し、GitHubでセキュアに管理できる日記アプリケーションです。
 
-## 新機能（v3）
+## 主な機能
 
-### GitHub Actions連携データ同期
-- **プライベートリポジトリ同期**: GitHub Actionsを使用してプライベートリポジトリにデータを自動保存
-- **Personal Access Token認証**: セキュアなトークンベース認証
-- **自動バックアップ**: 定期的なデータバックアップ機能
-- **同期ステータス表示**: リアルタイムの同期状況監視
+### 📝 日記管理
+- **週間目標設定**: 週ごとの目標を設定
+- **日別評価**: カスタマイズ可能な評価項目（最大20項目）
+- **3段階評価**: ⭕（達成）、✖（未達成）、△（まあまあ）
+- **感想・気づき**: 各日の振り返りをテキストで記録
 
-### セキュリティ機能
-- **トークン暗号化**: Personal Access Tokenの暗号化保存
-- **権限分離**: 公開リポジトリとプライベートデータの完全分離
-- **監査ログ**: データ同期の詳細ログ管理
+### 📊 ビュー機能
+- **日別表示**: 1日ずつ集中して入力（スクロール最小化）
+- **週間サマリー**: 7日分の達成度を一目で確認
+- **プレビュー表示**: 評価項目×日付の表形式で週間レポート表示
 
-## システム構成
+### 💾 データ管理
+- **GitHub同期**: Personal Access TokenでプライベートリポジトリにJSON保存
+- **自動保存**: 30秒ごとの自動保存機能
+- **手動保存**: 保存ボタンで即座に同期
+- **未保存検知**: 変更があると保存ボタンが「💾 保存 *」に変化
+- **更新時の警告**: 未保存の変更がある場合、ブラウザ更新時に警告
 
-[98]
+### 📤 エクスポート機能
+- **クリップボードコピー**: 
+  - 評価表（TSV形式）
+  - 感想・気づき（日付付き）
+  - Slackに貼り付けると表として認識される
+- **画像出力**: PNG形式で週間レポートをダウンロード
+- **印刷**: ブラウザの印刷機能でPDF化可能
 
-### アーキテクチャ概要
-
-1. **Public Repository (GitHub Pages)**
-   - スーパーノート日記アプリのフロントエンド
-   - LocalStorageでの一時的なデータ保存
-   - ユーザーインターフェース
-
-2. **GitHub Actions (データ同期)**
-   - Personal Access Token認証
-   - 自動データ同期ワークフロー
-   - GitHub API連携処理
-
-3. **Private Repository (データ管理)**
-   - 日記データのセキュアな保存
-   - JSON形式でのデータ管理
-   - バックアップ・履歴管理
+### ⚙️ カスタマイズ
+- **評価項目管理**: 項目の追加・削除・並び替え
+- **デフォルト復元**: 初期設定にワンクリックで戻す
+- **設定の永続化**: GitHubトークンやリポジトリ情報を保存
 
 ## セットアップ手順
 
-### 1. リポジトリ構成
+### 1. プライベートリポジトリの作成
 
-#### Public Repository (GitHub Pages用)
-```bash
-# 公開用リポジトリを作成
-git clone https://github.com/your-username/super-note-diary-public.git
-cd super-note-diary-public
+1. GitHubで新しいプライベートリポジトリを作成
+2. リポジトリ名は任意（例: `diary-data`）
 
-# アプリケーションファイルを配置
-# index.html, style.css, app.js をコピー
-```
+### 2. Personal Access Tokenの生成
 
-#### Private Repository (データ保存用)
-```bash
-# プライベートリポジトリを作成
-git clone https://github.com/your-username/super-note-diary-data.git
-cd super-note-diary-data
+1. GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. "Generate new token (classic)" をクリック
+3. 以下のスコープを選択：
+   - ✅ `repo` - Full control of private repositories
+     - ✅ `repo:status`
+     - ✅ `repo_deployment`
+     - ✅ `public_repo`
+     - ✅ `repo:invite`
+   - ✅ `admin:repo_hook` - Full control of repository hooks
+4. トークンをコピーして保存（後で使用）
 
-# データ保存用ディレクトリ構造
-mkdir -p data/weeks
-mkdir -p data/settings
-mkdir -p data/backups
-```
+### 3. アプリケーションの設定
 
-### 2. Personal Access Token設定
+1. アプリを開く（GitHub Pagesまたはローカル）
+2. 初回起動時に設定画面が表示される
+3. 以下を入力：
+   - **GitHubトークン**: 生成したPersonal Access Token
+   - **リポジトリ所有者**: あなたのGitHubユーザー名
+   - **リポジトリ名**: 作成したプライベートリポジトリ名
+4. 「接続テスト」で接続を確認
+5. 「設定保存」をクリック
 
-GitHub Settings → Developer settings → Personal access tokens
+### 4. 評価項目のカスタマイズ（任意）
 
-**必要なスコープ:**
-```
-✅ repo (Full control of private repositories)
-✅ workflow (Update GitHub Action workflows)
-```
+1. 設定画面で評価項目を編集
+2. 不要な項目を削除、必要な項目を追加
+3. ドラッグ＆ドロップで並び替え可能
 
-### 3. GitHub Actions設定
+## 使い方
 
-#### Public Repository に追加するワークフロー
-`.github/workflows/sync-to-private.yml`
-```yaml
-name: Sync Data to Private Repository
+### 基本操作
 
-on:
-  repository_dispatch:
-    types: [sync-diary-data]
-  workflow_dispatch:
-    inputs:
-      data:
-        description: 'Diary data to sync'
-        required: true
-        type: string
+#### 日記の入力
+1. **今週の目標**: 週の始めに目標を入力
+2. **日付選択**: 週間サマリーまたは日別ナビゲーションで日を選択
+3. **評価入力**: 各項目について⭕✖△をクリック
+4. **感想記入**: その日の振り返りを記入
+5. **保存**: 自動保存されるが、手動でも保存可能
 
-jobs:
-  sync-data:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout private repository
-      uses: actions/checkout@v4
-      with:
-        repository: ${{ secrets.PRIVATE_REPO_NAME }}
-        token: ${{ secrets.PAT_TOKEN }}
-        path: private-repo
+#### 週の切り替え
+- 「← 前週」「次週 →」ボタンで週を移動
+- 自動的に該当週のデータを読み込み
 
-    - name: Process and save data
-      run: |
-        # データの処理とバックアップ
-        echo '${{ github.event.inputs.data || github.event.client_payload.data }}' > temp_data.json
-        
-        # 週データの保存
-        WEEK=$(jq -r '.week' temp_data.json)
-        mkdir -p private-repo/data/weeks
-        cp temp_data.json private-repo/data/weeks/${WEEK}.json
-        
-        # バックアップの作成
-        BACKUP_FILE="private-repo/data/backups/backup-$(date +%Y%m%d-%H%M%S).json"
-        cp temp_data.json "$BACKUP_FILE"
+#### データの共有
+1. **Slackに貼り付け**:
+   - 「📋 評価表」をクリック
+   - Slackに貼り付けると表形式で表示される
+   - 「📋 感想」で感想だけをコピー可能
 
-    - name: Commit and push to private repository
-      run: |
-        cd private-repo
-        git config user.name "Diary Sync Bot"
-        git config user.email "sync@example.com"
-        git add .
-        git commit -m "Auto-sync diary data: $(date)"
-        git push
-```
+2. **画像として共有**:
+   - 「📷 画像」をクリック
+   - PNG画像としてダウンロード
+   - SNSやチャットで共有可能
 
-### 4. Secrets設定
+3. **PDFとして保存**:
+   - 「🖨️ 印刷」をクリック
+   - 印刷ダイアログで「PDFとして保存」を選択
 
-Public Repository の Settings → Secrets and variables → Actions
+### 画面構成
 
 ```
-PAT_TOKEN: your_personal_access_token_here
-PRIVATE_REPO_NAME: your-username/super-note-diary-data
+┌─────────────────────────┐
+│ スーパーノート日記アプリ  │
+├─────────────────────────┤
+│ 今週の目標（テキストエリア）│
+├─────────────────────────┤
+│ [日記入力][プレビュー][設定]│ ← タブ
+├─────────────────────────┤
+│ [← 前週] 2025-W42 [次週 →]│
+├─────────────────────────┤
+│ [💾保存][📋評価表][📋感想] │
+│ [📷画像][🖨️印刷]          │
+├─────────────────────────┤
+│ 【日別ナビゲーション】     │
+│   [◀ 前日] 10/15(火) [次日 ▶] │
+├─────────────────────────┤
+│ 【その日の評価入力】       │
+│   項目1: ⭕ ✖ △          │
+│   項目2: ⭕ ✖ △          │
+│   ...                    │
+│ 【感想・気づき】           │
+│   （テキストエリア）        │
+├─────────────────────────┤
+│ 【今週の記録】（7日分）    │
+│   各日の⭕✖△カウント表示  │
+├─────────────────────────┤
+│ [💾保存][📋評価表][📋感想] │ ← 下部にも配置
+│ [📷画像][🖨️印刷]          │
+└─────────────────────────┘
 ```
 
-### 5. データ同期API設定
+## データフォーマット
 
-#### Private Repository のAPI endpoint設定
-`.github/workflows/api-handler.yml`
-```yaml
-name: API Data Handler
-
-on:
-  workflow_dispatch:
-    inputs:
-      action:
-        description: 'Action type (save/load/list)'
-        required: true
-        type: choice
-        options:
-        - save
-        - load
-        - list
-      week:
-        description: 'Week identifier (e.g., 2024-W42)'
-        required: false
-        type: string
-      data:
-        description: 'Data payload for save action'
-        required: false
-        type: string
-
-jobs:
-  handle-api-request:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Handle save action
-      if: inputs.action == 'save'
-      run: |
-        mkdir -p data/weeks
-        echo '${{ inputs.data }}' > data/weeks/${{ inputs.week }}.json
-
-    - name: Handle load action
-      if: inputs.action == 'load'
-      run: |
-        if [ -f "data/weeks/${{ inputs.week }}.json" ]; then
-          cat data/weeks/${{ inputs.week }}.json
-        else
-          echo '{"error": "Week not found"}'
-        fi
-
-    - name: Handle list action
-      if: inputs.action == 'list'
-      run: |
-        ls data/weeks/*.json 2>/dev/null | xargs -I {} basename {} .json || echo '[]'
-
-    - name: Commit changes
-      if: inputs.action == 'save'
-      run: |
-        git config user.name "API Handler"
-        git config user.email "api@example.com"
-        git add .
-        git commit -m "API: ${{ inputs.action }} - ${{ inputs.week }}" || exit 0
-        git push
-```
-
-## 使用方法
-
-### 初期設定
-
-1. **設定画面でPATとリポジトリURLを設定**
-   ```
-   Personal Access Token: ghp_xxxxxxxxxxxxxxxxxxxx
-   Private Repository: https://github.com/username/diary-data
-   ```
-
-2. **同期設定の有効化**
-   ```
-   自動同期: ON
-   同期間隔: 即座に同期
-   ```
-
-### データ同期操作
-
-1. **手動同期**
-   ```
-   入力画面 → 同期ボタン → データがプライベートリポジトリに保存
-   ```
-
-2. **自動同期**
-   ```
-   データ保存時 → 自動的にGitHub Actionsが実行 → プライベートリポジトリに同期
-   ```
-
-3. **データ復元**
-   ```
-   設定画面 → インポートボタン → プライベートリポジトリからデータ復元
-   ```
-
-### API呼び出し例
-
-#### 手動でGitHub Actions APIを呼び出す場合
-
-```bash
-# データ保存
-curl -X POST \
-  -H "Authorization: token YOUR_PAT_TOKEN" \
-  -H "Accept: application/vnd.github+json" \
-  https://api.github.com/repos/username/super-note-diary-public/actions/workflows/sync-to-private.yml/dispatches \
-  -d '{
-    "ref": "main",
-    "inputs": {
-      "data": "{\"week\":\"2024-W42\",\"goal\":\"心を込めて日々を過ごす\"}"
-    }
-  }'
-
-# データ取得
-curl -X POST \
-  -H "Authorization: token YOUR_PAT_TOKEN" \
-  -H "Accept: application/vnd.github+json" \
-  https://api.github.com/repos/username/super-note-diary-data/actions/workflows/api-handler.yml/dispatches \
-  -d '{
-    "ref": "main",
-    "inputs": {
-      "action": "load",
-      "week": "2024-W42"
-    }
-  }'
-```
-
-## データ構造
-
-### エクスポート形式
+### 週データ (JSON)
 ```json
 {
-  "version": "3.0",
-  "exported": "2024-10-09T08:00:00Z",
-  "syncInfo": {
-    "source": "super-note-diary-v3",
-    "privateRepo": "username/diary-data",
-    "syncId": "uuid-here"
-  },
-  "settings": {
-    "customItems": [
-      "今週の目標",
-      "ハイニコポンをする。"
-    ],
-    "appVersion": "3.0"
-  },
-  "weeks": {
-    "2024-W42": {
-      "goal": "心を込めて日々を過ごす",
-      "created": "2024-10-14T09:00:00Z",
-      "modified": "2024-10-15T20:30:00Z",
-      "dailyRecords": [
-        {
-          "date": "2024-10-14",
-          "dayOfWeek": "月",
-          "responses": {
-            "ハイニコポンをする。": "○",
-            "自分の時間をできるだけ使わない。": "△"
-          },
-          "reflection": "今日は比較的心穏やかに過ごせた。"
-        }
-      ]
-    }
-  }
-}
-```
-
-### 同期ログ形式
-```json
-{
-  "syncLogs": [
+  "week": "2025-W42",
+  "goal": "毎日運動する",
+  "evaluationItems": ["項目1", "項目2", ...],
+  "dailyRecords": [
     {
-      "timestamp": "2024-10-09T08:00:00Z",
-      "action": "sync",
-      "week": "2024-W42",
-      "status": "success",
-      "message": "データが正常に同期されました"
+      "date": "2025-10-14",
+      "dayOfWeek": "月",
+      "responses": {
+        "項目1": "⭕️",
+        "項目2": "✖️"
+      },
+      "reflection": "今日の感想..."
     }
   ]
 }
 ```
 
-## セキュリティ考慮事項
+### 保存場所
+- GitHub: `data/weeks/2025-W42.json`
+- localStorage: バックアップとして一時保存
+- 設定情報: localStorage に永続化
 
-### Personal Access Token管理
-- **暗号化保存**: LocalStorageでの暗号化保存
-- **最小権限の原則**: 必要最小限のスコープのみ許可
-- **定期的な更新**: トークンの定期的な更新推奨
+## 技術スタック
 
-### プライベートリポジトリ保護
-- **権限制限**: 必要最小限のCollaboratorのみ追加
-- **監査ログ**: すべてのアクセスログを記録
-- **バックアップ**: 定期的なデータバックアップ
+- **フロントエンド**: 
+  - Vanilla JavaScript (ES6+)
+  - HTML5
+  - CSS3 (CSS Variables, Grid, Flexbox)
+  
+- **外部ライブラリ**:
+  - html2canvas v1.4.1 (画像出力)
+  
+- **API連携**:
+  - GitHub REST API v3 (Contents API)
+  - Clipboard API (コピー機能)
+  
+- **ストレージ**:
+  - GitHub (プライベートリポジトリ)
+  - localStorage (バックアップ・設定)
 
-### GitHub Actions安全性
-- **Secrets使用**: Secretsでの認証情報管理
-- **ワークフロー制限**: 承認されたワークフローのみ実行
-- **ログ監視**: 実行ログの定期的な確認
+## ファイル構成
+
+```
+Supernote/
+├── index.html          # メインHTML
+├── app.js              # アプリケーションロジック
+├── ui-renderer.js      # UI描画・レンダリング
+├── github-sync.js      # GitHub API連携
+├── style.css           # スタイルシート
+├── README.md           # このファイル
+├── LICENSE             # ライセンス
+├── data/               # ローカルデータ（開発用）
+└── logs/               # 開発ログ
+    ├── mikis_log.md    # 編集履歴
+    └── PROJECT_OVERVIEW.md
+```
+
+## ブラウザ対応
+
+- **推奨**: 
+  - Chrome 90+
+  - Edge 90+
+  - Safari 14+
+  - Firefox 88+
+
+- **モバイル**:
+  - iOS Safari 14+
+  - Android Chrome 90+
 
 ## トラブルシューティング
 
-### 同期エラーの対処
+### データが保存されない
+1. GitHubトークンの有効期限を確認
+2. リポジトリ名・所有者名が正しいか確認
+3. 「接続テスト」で接続状態を確認
+4. ブラウザのコンソールでエラーメッセージを確認
 
-1. **Personal Access Token問題**
-   ```
-   エラー: 401 Unauthorized
-   対処: PATの有効期限とスコープを確認
-   ```
+### 保存ボタンが「* 保存」のまま
+1. 手動で「保存」ボタンをクリック
+2. ネットワーク接続を確認
+3. GitHubの接続状態を確認
 
-2. **リポジトリアクセス問題**
-   ```
-   エラー: 404 Not Found
-   対処: リポジトリURL とアクセス権限を確認
-   ```
+### スマホで画像が正しく出力されない
+- 画像は固定幅1400pxで生成されるため、スマホでも全体が表示されます
+- ダウンロードした画像を確認してください
 
-3. **GitHub Actions失敗**
-   ```
-   エラー: Workflow failed
-   対処: Actions タブでログを確認し、Secretsを再設定
-   ```
+### Slackで表として認識されない
+- TSV形式（タブ区切り）でコピーされるため、通常は自動認識されます
+- うまくいかない場合は、コピー後に画像形式で共有してください
 
-### データ復旧手順
+## 開発履歴
 
-1. **バックアップからの復旧**
-   ```bash
-   # プライベートリポジトリからバックアップファイル取得
-   curl -H "Authorization: token YOUR_PAT" \
-     https://api.github.com/repos/username/diary-data/contents/data/backups/backup-20241009.json
-   ```
+### v3.0.0 (2025-10-17)
+- UI/UX大幅改善（スクロール最小化）
+- 自動保存機能追加（30秒ごと）
+- 未保存変更検知機能
+- クリップボードコピー機能（評価表・感想）
+- 設定の永続化
+- モバイル対応強化
 
-2. **手動データ復元**
-   ```
-   設定画面 → データインポート → JSONファイルを選択 → インポート実行
-   ```
+### v2.0.0 (2025-10-15)
+- タブナビゲーション統一
+- 日別表示革新（週間サマリー・日別ナビゲーション）
+- プレビュー表示改善（軸反転）
+- レイアウト最適化
 
-## 更新履歴
+### v1.0.0 (2025-10-12)
+- 初期リリース
+- GitHub同期機能実装
+- 基本的な日記入力機能
 
-- **v3.0.0** (2025-10-09): GitHub Actions連携機能追加
-  - プライベートリポジトリ自動同期
-  - Personal Access Token認証
-  - セキュアなデータ管理システム
-  - 同期ステータス表示機能
-  - データエクスポート/インポート機能
+## ライセンス
 
-- **v2.0.0** (2025-10-09): カスタマイズ機能追加
-- **v1.0.0** (2025-10-08): 初回リリース
+MIT License
+
+## 作者
+
+Takashi-home
+
+## リンク
+
+- [GitHub Repository](https://github.com/Takashi-home/Supernote)
+- [GitHub Pages](https://takashi-home.github.io/Supernote/)
+
+---
+
+**Note**: このアプリケーションはプライベートな日記データを扱うため、Personal Access Tokenは厳重に管理してください。
