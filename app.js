@@ -513,22 +513,29 @@ class DiaryApp {
         console.log('updateSaveButtonState called, hasUnsavedChanges:', this.hasUnsavedChanges); // デバッグログ
         this.debugLog(`updateSaveButtonState: hasUnsaved=${this.hasUnsavedChanges}`);
         
+        // 上部の保存ボタン
         const saveButton = document.getElementById('saveButton');
-        if (saveButton) {
+        // 下部の保存ボタン
+        const saveButtonBottom = document.getElementById('saveButtonBottom');
+        
+        const buttons = [saveButton, saveButtonBottom].filter(btn => btn);
+        
+        buttons.forEach(button => {
             if (this.hasUnsavedChanges) {
-                saveButton.textContent = '💾 保存 *';
-                saveButton.classList.add('btn--warning');
-                console.log('Save button updated to warning state'); // デバッグログ
-                this.debugLog('Save button → WARNING state');
+                button.textContent = '💾 保存 *';
+                button.classList.add('btn--warning');
             } else {
-                saveButton.textContent = '💾 保存';
-                saveButton.classList.remove('btn--warning');
-                console.log('Save button updated to normal state'); // デバッグログ
-                this.debugLog('Save button → NORMAL state');
+                button.textContent = '💾 保存';
+                button.classList.remove('btn--warning');
             }
+        });
+        
+        if (buttons.length > 0) {
+            console.log('Save buttons updated to', this.hasUnsavedChanges ? 'warning' : 'normal', 'state');
+            this.debugLog(`Save buttons → ${this.hasUnsavedChanges ? 'WARNING' : 'NORMAL'} state`);
         } else {
-            console.error('Save button not found!'); // エラーログ
-            this.debugLog('ERROR: Save button not found!');
+            console.error('Save buttons not found!');
+            this.debugLog('ERROR: Save buttons not found!');
         }
     }
 

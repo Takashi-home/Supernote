@@ -12,24 +12,13 @@
     <script src="github-sync.js"></script>
     <script src="ui-renderer.js"></script>
     <div class="app-container">
-        <!-- タイトル -->
-        <header class="app-title">
-            <h1>スーパーノート日記アプリ</h1>
-        </header>
-
-        <!-- 共通ヘッダー -->
-        <section class="goal-section">
-            <h3>今週の目標</h3>
-            <textarea id="weekGoal" class="form-control" placeholder="今週の目標を入力してください" rows="2"></textarea>
-        </section>
-
-        <div class="app-navigation">
+        <header class="app-header">
             <div class="navigation">
                 <button class="btn btn--tab" onclick="diaryApp.showDiary()">日記入力</button>
                 <button class="btn btn--tab" onclick="diaryApp.showPreview()">プレビュー</button>
                 <button class="btn btn--tab" onclick="diaryApp.showSettings()">設定</button>
             </div>
-        </div>
+        </header>
 
         <div class="week-selector">
             <button class="btn btn--secondary btn--sm" onclick="diaryApp.changeWeek(-1)">← 前週</button>
@@ -38,18 +27,28 @@
             <div class="sync-status" id="syncStatus"></div>
         </div>
 
-        <div class="export-actions export-actions--top">
-            <button class="btn btn--primary btn--sm" onclick="diaryApp.manualSave()" id="saveButton">💾 保存</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyEvaluationTable()">📋 評価表</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyReflectionTable()">📋 感想</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.exportAsImage()">📷 画像</button>
-            <button class="btn btn--outline btn--sm" onclick="window.print()">🖨️ 印刷</button>
-        </div>
-
         <!-- 日記入力画面 -->
         <div id="diaryView" class="diary-content">
+            <section class="goal-section">
+                <h3>今週の目標</h3>
+                <textarea id="weekGoal" class="form-control" placeholder="今週の目標を入力してください" rows="2"></textarea>
+            </section>
+
+            <div class="export-actions">
+                <button class="btn btn--primary btn--sm" onclick="diaryApp.manualSave()" id="saveButton">� 保存</button>
+                <button class="btn btn--outline btn--sm" onclick="diaryApp.copyEvaluationTable()">� 評価表</button>
+                <button class="btn btn--outline btn--sm" onclick="diaryApp.copyReflectionTable()">📋 感想</button>
+                <button class="btn btn--outline btn--sm" onclick="diaryApp.exportAsImage()">📷 画像</button>
+                <button class="btn btn--outline btn--sm" onclick="window.print()">🖨️ 印刷</button>
+            </div>
+
             <section class="daily-entries-section">
                 <div id="dailyEntries"></div>
+            </section>
+
+            <section class="week-summary-section">
+                <h3>今週の記録</h3>
+                <div id="weekSummaryBottom"></div>
             </section>
         </div>
 
@@ -57,15 +56,6 @@
         <div id="previewView" class="preview-section hidden">
             <h3>週間レポート</h3>
             <div id="previewContent"></div>
-        </div>
-
-        <!-- 下部ボタン -->
-        <div class="export-actions export-actions--bottom">
-            <button class="btn btn--primary btn--sm" onclick="diaryApp.manualSave()" id="saveButtonBottom">💾 保存</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyEvaluationTable()">📋 評価表</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyReflectionTable()">📋 感想</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.exportAsImage()">📷 画像</button>
-            <button class="btn btn--outline btn--sm" onclick="window.print()">🖨️ 印刷</button>
         </div>
     </div>
 

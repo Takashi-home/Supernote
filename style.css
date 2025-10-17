@@ -621,16 +621,38 @@ select.form-control {
     padding: var(--space-16);
 }
 
+/* アプリタイトル */
+.app-title {
+    text-align: center;
+    margin-bottom: var(--space-16);
+    padding: var(--space-12) 0;
+}
+
+.app-title h1 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+}
+
+/* ナビゲーション */
+.app-navigation {
+    text-align: center;
+    margin-bottom: var(--space-16);
+    padding: var(--space-8) 0;
+}
+
 .app-header {
     text-align: center;
-    margin-bottom: var(--space-32);
+    margin-bottom: var(--space-16);
+    padding: var(--space-8) 0;
 }
 
 .navigation {
     display: flex;
     justify-content: center;
     gap: 0;
-    margin-bottom: var(--space-16);
+    margin-bottom: 0;
     flex-wrap: nowrap;
     background: var(--color-secondary);
     border-radius: var(--radius-base);
@@ -644,8 +666,15 @@ select.form-control {
     display: flex;
     justify-content: center;
     gap: var(--space-8);
-    margin-bottom: var(--space-24);
+    margin-top: var(--space-16);
+    margin-bottom: var(--space-16);
     flex-wrap: wrap;
+}
+
+.export-actions--bottom {
+    margin-top: var(--space-32);
+    padding-top: var(--space-24);
+    border-top: 2px solid var(--color-border);
 }
 
 .export-actions .btn {
@@ -656,7 +685,7 @@ select.form-control {
     display: flex;
     align-items: center;
     gap: var(--space-8);
-    margin-bottom: var(--space-24);
+    margin-bottom: var(--space-16);
     justify-content: center;
 }
 
@@ -695,25 +724,48 @@ select.form-control {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-card-border);
-    padding: var(--space-20);
+    padding: var(--space-16);
     width: 100%;
+    margin-bottom: var(--space-16);
+}
+
+.goal-section h3 {
+    margin-top: 0;
+    margin-bottom: var(--space-12);
+    font-size: var(--font-size-base);
 }
 
 .daily-entries-section {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-card-border);
-    padding: var(--space-20);
+    padding: var(--space-16);
     width: 100%;
+    margin-bottom: var(--space-16);
+}
+
+/* 週間サマリーセクション（日記セクション内） */
+.week-summary-section {
+    background: var(--color-secondary);
+    border-radius: var(--radius-base);
+    border: 1px solid var(--color-border);
+    padding: var(--space-16);
+    margin-top: var(--space-20);
+}
+
+.week-summary-section h3 {
+    margin-top: 0;
+    margin-bottom: var(--space-12);
+    font-size: var(--font-size-base);
 }
 
 /* 週間サマリー */
 .week-summary {
-    background: var(--color-surface);
-    border-radius: var(--radius-lg);
-    padding: var(--space-20);
-    margin-bottom: var(--space-20);
-    border: 1px solid var(--color-card-border);
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 0;
+    border: none;
 }
 
 .week-summary h4 {

@@ -25,10 +25,6 @@ class UIRenderer {
         const container = document.getElementById('dailyEntries');
         container.innerHTML = '';
 
-        // 週間サマリーを表示
-        const weekSummary = this.createWeekSummary();
-        container.appendChild(weekSummary);
-
         // 日別ナビゲーションを表示
         const dayNavigation = this.createDayNavigation();
         container.appendChild(dayNavigation);
@@ -37,6 +33,14 @@ class UIRenderer {
         const currentRecord = this.app.weekData.dailyRecords[this.app.currentDayIndex];
         const dayEntry = this.createDayEntry(currentRecord, this.app.currentDayIndex);
         container.appendChild(dayEntry);
+
+        // 週間サマリーを日記セクション内の下部に表示
+        const weekSummarySection = document.createElement('section');
+        weekSummarySection.className = 'week-summary-section';
+        weekSummarySection.innerHTML = '<h3>今週の記録</h3>';
+        const weekSummary = this.createWeekSummary();
+        weekSummarySection.appendChild(weekSummary);
+        container.appendChild(weekSummarySection);
     }
 
     /**
@@ -47,7 +51,7 @@ class UIRenderer {
         const summary = document.createElement('div');
         summary.className = 'week-summary';
         
-        let html = '<h4>今週の記録</h4><div class="week-summary-grid">';
+        let html = '<div class="week-summary-grid">';
         
         this.app.weekData.dailyRecords.forEach((record, index) => {
             const date = new Date(record.date);
