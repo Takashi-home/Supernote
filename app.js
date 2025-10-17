@@ -539,7 +539,7 @@ class DiaryApp {
         }
     }
 
-    async copyToClipboard() {
+    async copyEvaluationTable() {
         try {
             // プレビューモードに切り替え
             this.showPreview();
@@ -547,39 +547,76 @@ class DiaryApp {
             // 少し待ってからテキストを生成
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // 週間レポートをテキスト形式で生成
-            let text = `📊 週間レポート: ${this.currentWeek}\n`;
-            text += `🎯 今週の目標: ${this.weekData.goal || '未設定'}\n\n`;
+            // TSV形式（タブ区切り）で評価表を生成
+            let tsvLines = [];
             
-            // テーブルヘッダー
-            text += '📅 日付    | ' + this.evaluationItems.slice(0, 5).join(' | ') + '\n';
-            text += '---------|' + '---|'.repeat(Math.min(5, this.evaluationItems.length)) + '\n';
+            // ヘッダー行1: 「評価項目」と各日の日付
+            let headerRow1 = ['評価項目'];
+            this.weekData.dailyRecords.forEach(record => {
+                const date = new Date(record.date);
+                const formattedDate = `${date.getMonth() + 1}月${date.getDate()}日`;
+                headerRow1.push(formattedDate);
+            });
+            tsvLines.push(headerRow1.join('\t'));
             
-            // 各日のデータ
+            // ヘッダー行2: 空白と曜日
+            let headerRow2 = [''];
+            this.weekData.dailyRecords.forEach(record => {
+                headerRow2.push(`(${record.dayOfWeek})`);
+            });
+            tsvLines.push(headerRow2.join('\t'));
+            
+            // 各評価項目の行
+            this.evaluationItems.forEach(item => {
+                let row = [item];
+                this.weekData.dailyRecords.forEach(record => {
+                    const value = record.responses[item] || '-';
+                    row.push(value);
+                });
+                tsvLines.push(row.join('\t'));
+            });
+            
+            // TSVテキストとして結合
+            const tsvText = tsvLines.join('\n');
+            
+            // クリップボードにコピー
+            await navigator.clipboard.writeText(tsvText);
+            this.uiRenderer.showStatusMessage('✅ 評価表をクリップボードにコピーしました', 'success');
+            
+        } catch (error) {
+            console.error('Copy error:', error);
+            this.uiRenderer.showStatusMessage('❌ コピーエラー: ' + error.message, 'error');
+        }
+    }
+
+    async copyReflectionTable() {
+        try {
+            // プレビューモードに切り替え
+            this.showPreview();
+            
+            // 少し待ってからテキストを生成
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // TSV形式（タブ区切り）で感想表を生成
+            let tsvLines = [];
+            
+            // ヘッダー行
+            tsvLines.push(['日付', '感想・気づき'].join('\t'));
+            
+            // 各日の感想
             this.weekData.dailyRecords.forEach(record => {
                 const date = new Date(record.date);
                 const formattedDate = `${date.getMonth() + 1}/${date.getDate()}(${record.dayOfWeek})`;
-                
-                let row = `${formattedDate.padEnd(9)} |`;
-                this.evaluationItems.slice(0, 5).forEach(item => {
-                    const value = record.responses[item] || '-';
-                    row += ` ${value.padEnd(2)} |`;
-                });
-                text += row + '\n';
+                const reflection = record.reflection || '';
+                tsvLines.push([formattedDate, reflection].join('\t'));
             });
             
-            // 感想・気づき
-            text += '\n💭 感想・気づき:\n';
-            this.weekData.dailyRecords.forEach(record => {
-                if (record.reflection) {
-                    const date = new Date(record.date);
-                    text += `\n${date.getMonth() + 1}/${date.getDate()}(${record.dayOfWeek}):\n${record.reflection}\n`;
-                }
-            });
+            // TSVテキストとして結合
+            const tsvText = tsvLines.join('\n');
             
             // クリップボードにコピー
-            await navigator.clipboard.writeText(text);
-            this.uiRenderer.showStatusMessage('✅ クリップボードにコピーしました', 'success');
+            await navigator.clipboard.writeText(tsvText);
+            this.uiRenderer.showStatusMessage('✅ 感想・気づきをクリップボードにコピーしました', 'success');
             
         } catch (error) {
             console.error('Copy error:', error);
