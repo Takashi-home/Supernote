@@ -10,7 +10,7 @@ class DiaryApp {
         this.autoSaveTimer = null; // 自動保存用タイマー
         this.hasUnsavedChanges = false; // 未保存の変更があるか
         this.lastSavedData = null; // 最後に保存したデータのスナップショット
-        this.debugMode = true; // デバッグモード（デフォルトON）
+        this.debugMode = false; // デバッグモード（デフォルトOFF）
         
         // 同期設定
         this.syncSettings = {
