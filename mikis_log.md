@@ -219,3 +219,12 @@ if (hasSettings) {
 
 ## 2025-10-17 11:38:12
 - クリップボードにコピー機能を改善。
+
+## 2025-10-17 11:55:10
+- 自分のデータ用のリポジトリを作ってみた
+### 作り方
+0. プライベートリポジトリをつくる。
+1. settings→一番下のdeveloper settings
+2. personal access tokens → Tokens(classic)
+3. アクセスはさっき作ったプライベートリポジトリのみ
+4. スコープはcontents r&wとmetadataを入れてみた。
