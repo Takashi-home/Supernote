@@ -65,18 +65,27 @@ class DiaryApp {
         // 初期表示を設定画面にする
         this.showSettings();
         
-        // ページを閉じる前に自動保存
-        window.addEventListener('beforeunload', async (e) => {
+        // ページを閉じる前/リロード前に自動保存
+        window.addEventListener('beforeunload', (e) => {
+            console.log('beforeunload triggered');
             if (this.syncSettings.githubToken && this.syncSettings.repoOwner && this.syncSettings.repoName) {
                 const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
                 
                 if (hasData) {
-                    // データがある場合は保存を試みる
-                    e.preventDefault();
-                    e.returnValue = ''; // Chrome用
-                    
-                    // 非同期保存を実行
-                    await this.saveData();
+                    console.log('Saving data to localStorage...');
+                    // 同期的に保存を試みる
+                    this.saveDataSync();
+                }
+            }
+        });
+
+        // visibilitychangeイベントでもバックアップ保存
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && this.syncSettings.githubToken) {
+                console.log('Page hidden, saving data...');
+                const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
+                if (hasData) {
+                    this.saveDataSync();
                 }
             }
         });
@@ -342,6 +351,13 @@ class DiaryApp {
         this.syncSettings.repoOwner = document.getElementById('repoOwner').value;
         this.syncSettings.repoName = document.getElementById('repoName').value;
         
+        // localStorageに設定を保存
+        try {
+            localStorage.setItem('diary-github-settings', JSON.stringify(this.syncSettings));
+        } catch (error) {
+            console.error('Failed to save settings to localStorage:', error);
+        }
+        
         this.uiRenderer.showStatusMessage('設定が保存されました', 'success');
         this.hideSettings();
         
@@ -352,7 +368,16 @@ class DiaryApp {
     }
 
     loadSettings() {
-        // 実際のアプリではlocalStorageなどを使用
+        // localStorageから設定を読み込み
+        try {
+            const savedSettings = localStorage.getItem('diary-github-settings');
+            if (savedSettings) {
+                this.syncSettings = JSON.parse(savedSettings);
+                console.log('Settings loaded from localStorage');
+            }
+        } catch (error) {
+            console.error('Failed to load settings from localStorage:', error);
+        }
     }
 
     async testConnection() {
@@ -392,8 +417,26 @@ class DiaryApp {
         }
     }
 
+    // ページを閉じる時などの同期的保存用
+    saveDataSync() {
+        // 保存前に最新の評価項目をweekDataに反映
+        this.weekData.evaluationItems = [...this.evaluationItems];
+        
+        try {
+            // localStorageに一時保存（次回起動時にGitHubに同期される）
+            localStorage.setItem(`diary-backup-${this.currentWeek}`, JSON.stringify(this.weekData));
+            console.log('Data saved to localStorage for next sync');
+        } catch (error) {
+            console.error('Sync save error:', error);
+        }
+    }
+
     async loadData() {
         this.uiRenderer.showSyncStatus('🔄 同期中...', 'loading');
+        
+        // まずlocalStorageのバックアップを確認
+        const backupKey = `diary-backup-${this.currentWeek}`;
+        const backup = localStorage.getItem(backupKey);
         
         try {
             const data = await this.githubSync.loadWeekData(this.currentWeek);
@@ -403,6 +446,23 @@ class DiaryApp {
                 this.loadEvaluationItems(data);
                 this.uiRenderer.renderDiary();
                 this.uiRenderer.showSyncStatus('✅ 同期完了', 'success');
+                
+                // GitHubのデータが読み込めた場合、バックアップを削除
+                if (backup) {
+                    localStorage.removeItem(backupKey);
+                }
+            } else if (backup) {
+                // GitHubにデータがないがバックアップがある場合
+                console.log('Restoring from backup and syncing to GitHub...');
+                const backupData = JSON.parse(backup);
+                this.weekData = backupData;
+                this.loadEvaluationItems(backupData);
+                this.uiRenderer.renderDiary();
+                
+                // バックアップをGitHubに保存
+                await this.githubSync.saveToGitHub(backupData);
+                localStorage.removeItem(backupKey);
+                this.uiRenderer.showSyncStatus('✅ バックアップから復元・同期完了', 'success');
             } else {
                 this.weekData = null;
                 // 新規週の場合、前回使用した項目またはデフォルトを使用
@@ -430,15 +490,19 @@ class DiaryApp {
             const element = document.getElementById('previewContent');
             element.classList.add('export-mode');
             
+            // デスクトップサイズで出力（スマホでも全体が表示されるように）
+            const exportWidth = Math.max(element.scrollWidth, 1200); // 最低1200pxを確保
+            const exportHeight = element.scrollHeight;
+            
             const options = {
-                scale: 3,
+                scale: 2, // スケールを下げてファイルサイズを抑える
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
-                width: element.scrollWidth,
-                height: element.scrollHeight,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight,
+                width: exportWidth,
+                height: exportHeight,
+                windowWidth: 1400, // デスクトップ幅でレンダリング
+                windowHeight: exportHeight,
                 scrollX: 0,
                 scrollY: 0,
                 imageTimeout: 60000
@@ -460,6 +524,54 @@ class DiaryApp {
             this.uiRenderer.showStatusMessage('画像出力エラー: ' + error.message, 'error');
         } finally {
             this.uiRenderer.hideLoading();
+        }
+    }
+
+    async copyToClipboard() {
+        try {
+            // プレビューモードに切り替え
+            this.showPreview();
+            
+            // 少し待ってからテキストを生成
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // 週間レポートをテキスト形式で生成
+            let text = `📊 週間レポート: ${this.currentWeek}\n`;
+            text += `🎯 今週の目標: ${this.weekData.goal || '未設定'}\n\n`;
+            
+            // テーブルヘッダー
+            text += '📅 日付    | ' + this.evaluationItems.slice(0, 5).join(' | ') + '\n';
+            text += '---------|' + '---|'.repeat(Math.min(5, this.evaluationItems.length)) + '\n';
+            
+            // 各日のデータ
+            this.weekData.dailyRecords.forEach(record => {
+                const date = new Date(record.date);
+                const formattedDate = `${date.getMonth() + 1}/${date.getDate()}(${record.dayOfWeek})`;
+                
+                let row = `${formattedDate.padEnd(9)} |`;
+                this.evaluationItems.slice(0, 5).forEach(item => {
+                    const value = record.responses[item] || '-';
+                    row += ` ${value.padEnd(2)} |`;
+                });
+                text += row + '\n';
+            });
+            
+            // 感想・気づき
+            text += '\n💭 感想・気づき:\n';
+            this.weekData.dailyRecords.forEach(record => {
+                if (record.reflection) {
+                    const date = new Date(record.date);
+                    text += `\n${date.getMonth() + 1}/${date.getDate()}(${record.dayOfWeek}):\n${record.reflection}\n`;
+                }
+            });
+            
+            // クリップボードにコピー
+            await navigator.clipboard.writeText(text);
+            this.uiRenderer.showStatusMessage('✅ クリップボードにコピーしました', 'success');
+            
+        } catch (error) {
+            console.error('Copy error:', error);
+            this.uiRenderer.showStatusMessage('❌ コピーエラー: ' + error.message, 'error');
         }
     }
 }
