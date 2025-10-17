@@ -7,6 +7,9 @@ class DiaryApp {
         this.currentView = 'diary';
         this.currentDayIndex = 0; // 現在選択中の日のインデックス（0-6）
         this.weekData = null;
+        this.autoSaveTimer = null; // 自動保存用タイマー
+        this.hasUnsavedChanges = false; // 未保存の変更があるか
+        this.lastSavedData = null; // 最後に保存したデータのスナップショット
         
         // 同期設定
         this.syncSettings = {
@@ -79,26 +82,26 @@ class DiaryApp {
         
         // ページを閉じる前/リロード前に自動保存
         window.addEventListener('beforeunload', (e) => {
-            console.log('beforeunload triggered');
-            if (this.syncSettings.githubToken && this.syncSettings.repoOwner && this.syncSettings.repoName) {
-                const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
-                
-                if (hasData) {
-                    console.log('Saving data to localStorage...');
-                    // 同期的に保存を試みる
-                    this.saveDataSync();
-                }
+            // 未保存の変更がある場合のみ警告を表示
+            if (this.hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '保存されていない変更があります。このページを離れますか？';
+                return e.returnValue;
             }
         });
 
-        // visibilitychangeイベントでもバックアップ保存
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && this.syncSettings.githubToken) {
-                console.log('Page hidden, saving data...');
-                const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
-                if (hasData) {
-                    this.saveDataSync();
-                }
+        // 定期的な自動保存（30秒ごと）
+        setInterval(() => {
+            if (this.hasUnsavedChanges && this.syncSettings.githubToken) {
+                console.log('Auto-saving data...');
+                this.autoSave();
+            }
+        }, 30000);
+
+        // フォーム入力時の変更検知
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('textarea, input[type="text"]')) {
+                this.markAsChanged();
             }
         });
     }
@@ -312,10 +315,12 @@ class DiaryApp {
 
     setEvaluation(dayIndex, item, value) {
         this.weekData.dailyRecords[dayIndex].responses[item] = value;
+        this.markAsChanged(); // 変更を検知
     }
 
     setReflection(dayIndex, value) {
         this.weekData.dailyRecords[dayIndex].reflection = value;
+        this.markAsChanged(); // 変更を検知
     }
 
     // ==================== 評価項目管理 ====================
@@ -429,26 +434,62 @@ class DiaryApp {
         }
     }
 
-    // ページを閉じる時などの同期的保存用
-    saveDataSync() {
-        // 保存前に最新の評価項目をweekDataに反映
-        this.weekData.evaluationItems = [...this.evaluationItems];
-        
+    // 変更を検知してマーク
+    markAsChanged() {
+        this.hasUnsavedChanges = true;
+        this.updateSaveButtonState();
+    }
+
+    // 保存ボタンの状態を更新
+    updateSaveButtonState() {
+        const saveButton = document.getElementById('saveButton');
+        if (saveButton) {
+            if (this.hasUnsavedChanges) {
+                saveButton.textContent = '💾 保存 *';
+                saveButton.classList.add('btn--warning');
+            } else {
+                saveButton.textContent = '💾 保存';
+                saveButton.classList.remove('btn--warning');
+            }
+        }
+    }
+
+    // 手動保存
+    async manualSave() {
+        if (!this.syncSettings.githubToken) {
+            this.uiRenderer.showStatusMessage('❌ GitHub設定が必要です', 'error');
+            return;
+        }
+
         try {
-            // localStorageに一時保存（次回起動時にGitHubに同期される）
-            localStorage.setItem(`diary-backup-${this.currentWeek}`, JSON.stringify(this.weekData));
-            console.log('Data saved to localStorage for next sync');
+            this.uiRenderer.showStatusMessage('� 保存中...', 'loading');
+            await this.saveData();
+            this.hasUnsavedChanges = false;
+            this.updateSaveButtonState();
+            this.uiRenderer.showStatusMessage('✅ 保存しました', 'success');
         } catch (error) {
-            console.error('Sync save error:', error);
+            console.error('Manual save error:', error);
+            this.uiRenderer.showStatusMessage('❌ 保存エラー: ' + error.message, 'error');
+        }
+    }
+
+    // 自動保存（30秒ごと）
+    async autoSave() {
+        if (!this.syncSettings.githubToken) return;
+
+        try {
+            console.log('Auto-saving to GitHub...');
+            await this.saveData();
+            this.hasUnsavedChanges = false;
+            this.updateSaveButtonState();
+            this.uiRenderer.showStatusMessage('✅ 自動保存完了', 'success', 2000);
+        } catch (error) {
+            console.error('Auto save error:', error);
         }
     }
 
     async loadData() {
         this.uiRenderer.showSyncStatus('🔄 同期中...', 'loading');
-        
-        // まずlocalStorageのバックアップを確認
-        const backupKey = `diary-backup-${this.currentWeek}`;
-        const backup = localStorage.getItem(backupKey);
         
         try {
             const data = await this.githubSync.loadWeekData(this.currentWeek);
@@ -458,28 +499,15 @@ class DiaryApp {
                 this.loadEvaluationItems(data);
                 this.uiRenderer.renderDiary();
                 this.uiRenderer.showSyncStatus('✅ 同期完了', 'success');
-                
-                // GitHubのデータが読み込めた場合、バックアップを削除
-                if (backup) {
-                    localStorage.removeItem(backupKey);
-                }
-            } else if (backup) {
-                // GitHubにデータがないがバックアップがある場合
-                console.log('Restoring from backup and syncing to GitHub...');
-                const backupData = JSON.parse(backup);
-                this.weekData = backupData;
-                this.loadEvaluationItems(backupData);
-                this.uiRenderer.renderDiary();
-                
-                // バックアップをGitHubに保存
-                await this.githubSync.saveToGitHub(backupData);
-                localStorage.removeItem(backupKey);
-                this.uiRenderer.showSyncStatus('✅ バックアップから復元・同期完了', 'success');
+                this.hasUnsavedChanges = false;
+                this.updateSaveButtonState();
             } else {
                 this.weekData = null;
                 // 新規週の場合、前回使用した項目またはデフォルトを使用
                 this.initializeWeekData();
                 this.uiRenderer.showSyncStatus('ℹ️ 新規週', 'loading');
+                this.hasUnsavedChanges = false;
+                this.updateSaveButtonState();
             }
         } catch (error) {
             console.error('Load error:', error);

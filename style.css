@@ -308,6 +308,21 @@ a:hover {
   background: var(--color-primary-active);
 }
 
+.btn--warning {
+  background: #ff9800;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.btn--warning:hover {
+  background: #f57c00;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
 .btn--secondary {
   background: var(--color-secondary);
   color: var(--color-text);

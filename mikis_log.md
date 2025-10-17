@@ -228,3 +228,7 @@ if (hasSettings) {
 2. personal access tokens → Tokens(classic)
 3. アクセスはさっき作ったプライベートリポジトリのみ
 4. スコープはcontents r&wとmetadataを入れてみた。
+
+### 2025-10-17 13:37:47
+- 同期がうまく動いていないっぽい。
+- 修正した。

@@ -18,6 +18,7 @@ class UIRenderer {
         
         newWeekGoal.addEventListener('input', () => {
             this.app.weekData.goal = newWeekGoal.value;
+            this.app.markAsChanged(); // 変更を検知
         });
 
         const container = document.getElementById('dailyEntries');
