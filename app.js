@@ -10,6 +10,7 @@ class DiaryApp {
         this.autoSaveTimer = null; // 自動保存用タイマー
         this.hasUnsavedChanges = false; // 未保存の変更があるか
         this.lastSavedData = null; // 最後に保存したデータのスナップショット
+        this.debugMode = true; // デバッグモード（デフォルトON）
         
         // 同期設定
         this.syncSettings = {
@@ -314,11 +315,15 @@ class DiaryApp {
     // ==================== データ入力 ====================
 
     setEvaluation(dayIndex, item, value) {
+        console.log('setEvaluation called:', { dayIndex, item, value }); // デバッグログ
+        this.debugLog(`setEvaluation: day=${dayIndex}, value=${value}`);
         this.weekData.dailyRecords[dayIndex].responses[item] = value;
         this.markAsChanged(); // 変更を検知
     }
 
     setReflection(dayIndex, value) {
+        console.log('setReflection called:', { dayIndex, value }); // デバッグログ
+        this.debugLog(`setReflection: day=${dayIndex}, length=${value.length}`);
         this.weekData.dailyRecords[dayIndex].reflection = value;
         this.markAsChanged(); // 変更を検知
     }
@@ -434,23 +439,96 @@ class DiaryApp {
         }
     }
 
+    // デバッグ用：画面にログを表示
+    debugLog(message) {
+        if (this.debugMode) {
+            const debugDiv = document.getElementById('debugLog') || this.createDebugLog();
+            const time = new Date().toLocaleTimeString();
+            debugDiv.innerHTML = `${time}: ${message}<br>` + debugDiv.innerHTML;
+            // 最新10件のみ表示
+            const lines = debugDiv.innerHTML.split('<br>');
+            if (lines.length > 11) {
+                debugDiv.innerHTML = lines.slice(0, 11).join('<br>');
+            }
+        }
+    }
+
+    createDebugLog() {
+        const div = document.createElement('div');
+        div.id = 'debugLog';
+        div.style.cssText = `
+            position: fixed;
+            bottom: 60px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.9);
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 9999;
+            border-radius: 8px;
+            border: 2px solid #0f0;
+        `;
+        document.body.appendChild(div);
+        
+        // デバッグモード切り替えボタンも追加
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = '🐛 デバッグOFF';
+        toggleBtn.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 10000;
+            padding: 8px 12px;
+            background: #f00;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        `;
+        toggleBtn.onclick = () => {
+            this.debugMode = !this.debugMode;
+            toggleBtn.textContent = this.debugMode ? '🐛 デバッグOFF' : '🐛 デバッグON';
+            toggleBtn.style.background = this.debugMode ? '#f00' : '#0f0';
+            div.style.display = this.debugMode ? 'block' : 'none';
+        };
+        document.body.appendChild(toggleBtn);
+        
+        return div;
+    }
+
     // 変更を検知してマーク
     markAsChanged() {
+        console.log('markAsChanged called'); // デバッグログ
+        this.debugLog('markAsChanged called');
         this.hasUnsavedChanges = true;
         this.updateSaveButtonState();
     }
 
     // 保存ボタンの状態を更新
     updateSaveButtonState() {
+        console.log('updateSaveButtonState called, hasUnsavedChanges:', this.hasUnsavedChanges); // デバッグログ
+        this.debugLog(`updateSaveButtonState: hasUnsaved=${this.hasUnsavedChanges}`);
+        
         const saveButton = document.getElementById('saveButton');
         if (saveButton) {
             if (this.hasUnsavedChanges) {
                 saveButton.textContent = '💾 保存 *';
                 saveButton.classList.add('btn--warning');
+                console.log('Save button updated to warning state'); // デバッグログ
+                this.debugLog('Save button → WARNING state');
             } else {
                 saveButton.textContent = '💾 保存';
                 saveButton.classList.remove('btn--warning');
+                console.log('Save button updated to normal state'); // デバッグログ
+                this.debugLog('Save button → NORMAL state');
             }
+        } else {
+            console.error('Save button not found!'); // エラーログ
+            this.debugLog('ERROR: Save button not found!');
         }
     }
 

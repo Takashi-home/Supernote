@@ -17,6 +17,7 @@ class UIRenderer {
         weekGoal.parentNode.replaceChild(newWeekGoal, weekGoal);
         
         newWeekGoal.addEventListener('input', () => {
+            this.app.debugLog('weekGoal input event');
             this.app.weekData.goal = newWeekGoal.value;
             this.app.markAsChanged(); // 変更を検知
         });
@@ -158,7 +159,19 @@ class UIRenderer {
             const dayIdx = parseInt(evalItem.dataset.day);
             const radioInputs = evalItem.querySelectorAll('input[type="radio"]');
             radioInputs.forEach(radio => {
+                // changeイベント（PC・スマホ両対応）
                 radio.addEventListener('change', (e) => {
+                    console.log('Radio change event:', e.target.value); // デバッグログ
+                    this.app.debugLog(`Radio CHANGE: ${e.target.value}`);
+                    if (e.target.checked) {
+                        this.app.setEvaluation(dayIdx, item, e.target.value);
+                    }
+                });
+                
+                // clickイベントも追加（スマホ対応）
+                radio.addEventListener('click', (e) => {
+                    console.log('Radio click event:', e.target.value); // デバッグログ
+                    this.app.debugLog(`Radio CLICK: ${e.target.value}`);
                     if (e.target.checked) {
                         this.app.setEvaluation(dayIdx, item, e.target.value);
                     }
@@ -169,6 +182,7 @@ class UIRenderer {
         // 感想テキストエリアのイベントリスナーを追加
         const textarea = dayEntry.querySelector('textarea[data-day]');
         textarea.addEventListener('input', (e) => {
+            this.app.debugLog('Textarea INPUT event');
             const dayIdx = parseInt(e.target.dataset.day);
             this.app.setReflection(dayIdx, e.target.value);
         });
