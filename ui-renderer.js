@@ -41,6 +41,10 @@ class UIRenderer {
         const weekSummary = this.createWeekSummary();
         weekSummarySection.appendChild(weekSummary);
         container.appendChild(weekSummarySection);
+
+        // 親からのコメント欄を追加
+        const parentsCommentSection = this.createParentsCommentSection();
+        container.appendChild(parentsCommentSection);
     }
 
     /**
@@ -82,6 +86,47 @@ class UIRenderer {
         summary.innerHTML = html;
         
         return summary;
+    }
+
+    /**
+     * 親からのコメント欄を作成
+     * @returns {HTMLElement} - 親コメント欄要素
+     */
+    createParentsCommentSection() {
+        const section = document.createElement('section');
+        section.className = 'parents-comment-section';
+        
+        const toggleButton = document.createElement('button');
+        toggleButton.className = 'btn btn--outline btn--sm toggle-parents-comment';
+        toggleButton.textContent = this.app.showParentsComment ? '👪 親からのコメント欄を非表示' : '👪 親からのコメント欄を表示';
+        toggleButton.onclick = () => this.app.toggleParentsComment();
+        
+        section.appendChild(toggleButton);
+        
+        if (this.app.showParentsComment) {
+            const commentArea = document.createElement('div');
+            commentArea.className = 'parents-comment-area';
+            
+            const label = document.createElement('label');
+            label.className = 'form-label';
+            label.textContent = '親からのコメント（週に1回）';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'form-control';
+            textarea.rows = 4;
+            textarea.placeholder = '親御さんからのコメントをこちらに記入してください';
+            textarea.value = this.app.weekData.parentsComment || '';
+            
+            textarea.addEventListener('input', (e) => {
+                this.app.setParentsComment(e.target.value);
+            });
+            
+            commentArea.appendChild(label);
+            commentArea.appendChild(textarea);
+            section.appendChild(commentArea);
+        }
+        
+        return section;
     }
 
     /**
@@ -162,22 +207,24 @@ class UIRenderer {
             const item = evalItem.dataset.item;
             const dayIdx = parseInt(evalItem.dataset.day);
             const radioInputs = evalItem.querySelectorAll('input[type="radio"]');
+            
             radioInputs.forEach(radio => {
-                // changeイベント（PC・スマホ両対応）
-                radio.addEventListener('change', (e) => {
-                    console.log('Radio change event:', e.target.value); // デバッグログ
-                    this.app.debugLog(`Radio CHANGE: ${e.target.value}`);
-                    if (e.target.checked) {
-                        this.app.setEvaluation(dayIdx, item, e.target.value);
-                    }
-                });
-                
-                // clickイベントも追加（スマホ対応）
+                // クリックイベントで選択解除を処理
                 radio.addEventListener('click', (e) => {
-                    console.log('Radio click event:', e.target.value); // デバッグログ
-                    this.app.debugLog(`Radio CLICK: ${e.target.value}`);
-                    if (e.target.checked) {
-                        this.app.setEvaluation(dayIdx, item, e.target.value);
+                    const currentValue = this.app.weekData.dailyRecords[dayIdx].responses[item];
+                    
+                    // 同じ値が既に選択されている場合は解除
+                    if (currentValue === radio.value) {
+                        e.preventDefault();
+                        // 少し遅延させてから解除
+                        setTimeout(() => {
+                            radio.checked = false;
+                            radioInputs.forEach(r => r.checked = false);
+                            this.app.setEvaluation(dayIdx, item, '');
+                        }, 10);
+                    } else {
+                        // 新しい値を設定
+                        this.app.setEvaluation(dayIdx, item, radio.value);
                     }
                 });
             });

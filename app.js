@@ -11,6 +11,7 @@ class DiaryApp {
         this.hasUnsavedChanges = false; // 未保存の変更があるか
         this.lastSavedData = null; // 最後に保存したデータのスナップショット
         this.debugMode = false; // デバッグモード（デフォルトOFF）
+        this.showParentsComment = false; // 親コメント欄の表示状態
         
         // 同期設定
         this.syncSettings = {
@@ -66,6 +67,7 @@ class DiaryApp {
         
         // 設定を読み込み
         this.loadSettings();
+        this.loadParentsCommentVisibility(); // 親コメント欄の表示状態を読み込み
         
         // 設定が保存されているかチェック
         const hasSettings = this.syncSettings.githubToken && 
@@ -91,13 +93,13 @@ class DiaryApp {
             }
         });
 
-        // 定期的な自動保存（30秒ごと）
+        // 定期的な自動保存（2分ごと）
         setInterval(() => {
             if (this.hasUnsavedChanges && this.syncSettings.githubToken) {
                 console.log('Auto-saving data...');
                 this.autoSave();
             }
-        }, 30000);
+        }, 120000);
 
         // フォーム入力時の変更検知
         document.addEventListener('input', (e) => {
@@ -109,12 +111,63 @@ class DiaryApp {
 
     // ==================== 週管理 ====================
 
+    /**
+     * 曜日から月曜日へのオフセットを計算
+     * @param {number} dayOfWeek - 0=日曜, 1=月曜, ..., 6=土曜
+     * @returns {number} - 月曜日までの日数（負の値）
+     */
+    getMondayOffset(dayOfWeek) {
+        return dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    }
+
+    /**
+     * 指定年の第1週の月曜日を取得
+     * @param {number} year - 年
+     * @returns {Date} - 第1週の月曜日
+     */
+    getFirstMondayOfYear(year) {
+        const jan4 = new Date(year, 0, 4, 12, 0, 0, 0);
+        const offset = this.getMondayOffset(jan4.getDay());
+        const firstMonday = new Date(jan4);
+        firstMonday.setDate(jan4.getDate() + offset);
+        return firstMonday;
+    }
+
     getCurrentWeek() {
         const now = new Date();
+        now.setHours(12, 0, 0, 0); // タイムゾーンの影響を避けるため正午に設定
         const year = now.getFullYear();
-        const firstDayOfYear = new Date(year, 0, 1);
-        const pastDaysOfYear = (now - firstDayOfYear) / 86400000;
-        const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        
+        // 今週の月曜日を計算
+        const offset = this.getMondayOffset(now.getDay());
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + offset);
+        
+        // 第1週の月曜日を取得
+        const firstMonday = this.getFirstMondayOfYear(year);
+        
+        // 週番号を計算
+        const daysDiff = Math.floor((monday - firstMonday) / (24 * 60 * 60 * 1000));
+        const weekNumber = Math.floor(daysDiff / 7) + 1;
+        
+        // 年をまたぐ場合の処理
+        if (weekNumber < 1) {
+            // 前年の最終週
+            const prevYear = year - 1;
+            const prevFirstMonday = this.getFirstMondayOfYear(prevYear);
+            const lastMonday = new Date(prevYear, 11, 31, 12, 0, 0, 0);
+            const dec31Offset = this.getMondayOffset(lastMonday.getDay());
+            lastMonday.setDate(lastMonday.getDate() + dec31Offset);
+            const lastWeek = Math.floor((lastMonday - prevFirstMonday) / (7 * 24 * 60 * 60 * 1000)) + 1;
+            return `${prevYear}-W${String(lastWeek).padStart(2, '0')}`;
+        } else if (weekNumber > 52) {
+            // 翌年の第1週の可能性をチェック
+            const nextFirstMonday = this.getFirstMondayOfYear(year + 1);
+            if (monday >= nextFirstMonday) {
+                return `${year + 1}-W01`;
+            }
+        }
+        
         return `${year}-W${String(weekNumber).padStart(2, '0')}`;
     }
 
@@ -201,6 +254,7 @@ class DiaryApp {
                 week: this.currentWeek,
                 goal: '',
                 evaluationItems: this.evaluationItems, // 項目を明示的に保存
+                parentsComment: '', // 親からのコメント
                 dailyRecords: this.generateDailyRecords()
             };
         }
@@ -234,16 +288,20 @@ class DiaryApp {
     }
 
     getDateOfWeek(year, week) {
-        const firstDayOfYear = new Date(year, 0, 1);
-        const days = (week - 1) * 7;
-        const mondayOfWeek = new Date(firstDayOfYear);
-        mondayOfWeek.setDate(firstDayOfYear.getDate() + days - firstDayOfYear.getDay() + 1);
-        return mondayOfWeek;
+        // 第1週の月曜日を取得
+        const firstMonday = this.getFirstMondayOfYear(year);
+        
+        // 指定された週の月曜日を計算
+        const targetMonday = new Date(firstMonday);
+        targetMonday.setDate(firstMonday.getDate() + (week - 1) * 7);
+        
+        return targetMonday;
     }
 
     isWeekDataEmpty(weekData) {
         if (!weekData) return true;
         if (weekData.goal && weekData.goal.trim() !== '') return false;
+        if (weekData.parentsComment && weekData.parentsComment.trim() !== '') return false;
         for (const record of weekData.dailyRecords) {
             for (const response of Object.values(record.responses)) {
                 if (response && response.trim() !== '') return false;
@@ -310,6 +368,36 @@ class DiaryApp {
             this.currentDayIndex = newIndex;
             this.uiRenderer.renderDiary();
         }
+    }
+
+    // ==================== 親コメント管理 ====================
+
+    toggleParentsComment() {
+        this.showParentsComment = !this.showParentsComment;
+        // 表示状態をlocalStorageに保存
+        try {
+            localStorage.setItem('diary-show-parents-comment', JSON.stringify(this.showParentsComment));
+        } catch (error) {
+            console.error('Failed to save parents comment visibility:', error);
+        }
+        this.uiRenderer.renderDiary();
+    }
+
+    loadParentsCommentVisibility() {
+        // localStorageから表示状態を読み込み
+        try {
+            const saved = localStorage.getItem('diary-show-parents-comment');
+            if (saved !== null) {
+                this.showParentsComment = JSON.parse(saved);
+            }
+        } catch (error) {
+            console.error('Failed to load parents comment visibility:', error);
+        }
+    }
+
+    setParentsComment(value) {
+        this.weekData.parentsComment = value;
+        this.markAsChanged();
     }
 
     // ==================== データ入力 ====================
@@ -734,6 +822,63 @@ class DiaryApp {
         } catch (error) {
             console.error('Copy error:', error);
             this.uiRenderer.showStatusMessage('❌ コピーエラー: ' + error.message, 'error');
+        }
+    }
+
+    async copyImageToClipboard() {
+        this.uiRenderer.showLoading();
+        
+        try {
+            // プレビューモードに切り替え
+            this.showPreview();
+            
+            // 少し待ってからキャプチャ（レンダリング完了を待つ）
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            const element = document.getElementById('previewContent');
+            element.classList.add('export-mode');
+            
+            // デスクトップサイズで出力（スマホでも全体が表示されるように）
+            const exportWidth = Math.max(element.scrollWidth, 1200);
+            const exportHeight = element.scrollHeight;
+            
+            const options = {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                width: exportWidth,
+                height: exportHeight,
+                windowWidth: 1400,
+                windowHeight: exportHeight,
+                scrollX: 0,
+                scrollY: 0,
+                imageTimeout: 60000
+            };
+            
+            const canvas = await html2canvas(element, options);
+            
+            // CanvasをBlobに変換
+            const blob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/png');
+            });
+            
+            // ClipboardItem APIを使用して画像をクリップボードにコピー
+            if (navigator.clipboard && navigator.clipboard.write) {
+                const clipboardItem = new ClipboardItem({ 'image/png': blob });
+                await navigator.clipboard.write([clipboardItem]);
+                this.uiRenderer.showStatusMessage('✅ 画像をクリップボードにコピーしました', 'success');
+            } else {
+                throw new Error('お使いのブラウザはクリップボードへの画像コピーに対応していません');
+            }
+            
+            element.classList.remove('export-mode');
+            
+        } catch (error) {
+            console.error('Copy image error:', error);
+            this.uiRenderer.showStatusMessage('❌ 画像コピーエラー: ' + error.message, 'error');
+        } finally {
+            this.uiRenderer.hideLoading();
         }
     }
 }
