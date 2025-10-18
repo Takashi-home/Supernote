@@ -1,11 +1,46 @@
 // スーパーノート日記アプリ - メインアプリケーション
 
 class DiaryApp {
+    // 定数定義
+    static CONSTANTS = {
+        AUTO_SAVE_INTERVAL: 120000, // 2分（ミリ秒）
+        STATUS_MESSAGE_DURATION: 3000, // 3秒（ミリ秒）
+        DAYS_PER_WEEK: 7,
+        FIRST_DAY_INDEX: 0,
+        LAST_DAY_INDEX: 6,
+        MIN_WEEK_NUMBER: 1,
+        MAX_WEEK_NUMBER: 52,
+        MONDAY_INDEX: 1,
+        SUNDAY_INDEX: 0,
+        DAYS_IN_MONDAY_OFFSET: 6,
+        NOON_HOUR: 12,
+        JANUARY_4TH: 4,
+        MS_PER_DAY: 24 * 60 * 60 * 1000,
+        RENDER_DELAY: 100, // レンダリング待機時間（ミリ秒）
+        CHECKBOX_UNCHECK_DELAY: 10, // チェックボックス解除の遅延（ミリ秒）
+        MAX_DEBUG_LINES: 11,
+        EXPORT_MIN_WIDTH: 1200,
+        EXPORT_WINDOW_WIDTH: 1400,
+        EXPORT_SCALE: 2,
+        EXPORT_TIMEOUT: 60000,
+        STORAGE_KEY_SETTINGS: 'diary-github-settings',
+        STORAGE_KEY_PARENTS_COMMENT: 'diary-show-parents-comment',
+        DEFAULT_GOAL_INDEX: 0
+    };
+
+    static DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日'];
+
+    static CHECK_OPTIONS = [
+        { value: '⭕️', label: '⭕️', color: '#22c55e', class: 'success' },
+        { value: '✖️', label: '✖️', color: '#ef4444', class: 'error' },
+        { value: '△', label: '△', color: '#f59e0b', class: 'warning' }
+    ];
+
     constructor() {
         // 現在の週
         this.currentWeek = this.getCurrentWeek();
         this.currentView = 'diary';
-        this.currentDayIndex = 0; // 現在選択中の日のインデックス（0-6）
+        this.currentDayIndex = DiaryApp.CONSTANTS.FIRST_DAY_INDEX;
         this.weekData = null;
         this.autoSaveTimer = null; // 自動保存用タイマー
         this.hasUnsavedChanges = false; // 未保存の変更があるか
@@ -40,16 +75,10 @@ class DiaryApp {
             "やるべきことを終わらせてから寝る。"
         ];
 
-        this.evaluationItems = [...this.defaultItems.slice(1)]; // "今週の目標"を除く
+        this.evaluationItems = this._getDefaultEvaluationItems();
         
         // 最後に使用した項目リスト（セッション中のキャッシュ）
         this.lastUsedItems = null;
-
-        this.checkOptions = [
-            { value: '⭕️', label: '⭕️', color: '#22c55e', class: 'success' },
-            { value: '✖️', label: '✖️', color: '#ef4444', class: 'error' },
-            { value: '△', label: '△', color: '#f59e0b', class: 'warning' }
-        ];
 
         // モジュールの初期化
         this.githubSync = new GitHubSync(this);
@@ -58,34 +87,21 @@ class DiaryApp {
         this.init();
     }
 
-    init() {
-        this.uiRenderer.hideLoading();
-        this.updateWeekDisplay();
-        this.initializeWeekData();
-        this.uiRenderer.renderDiary();
-        this.updateNavigationButtons(); // ナビゲーションボタンの初期状態を設定
-        
-        // 設定を読み込み
-        this.loadSettings();
-        this.loadParentsCommentVisibility(); // 親コメント欄の表示状態を読み込み
-        
-        // 設定が保存されているかチェック
-        const hasSettings = this.syncSettings.githubToken && 
-                           this.syncSettings.repoOwner && 
-                           this.syncSettings.repoName;
-        
-        if (hasSettings) {
-            // 設定がある場合は日記入力画面を表示してデータを読み込み
-            this.showDiary();
-            this.loadData();
-        } else {
-            // 設定がない場合は設定画面を表示
-            this.showSettings();
-        }
-        
+    /**
+     * デフォルト評価項目を取得（"今週の目標"を除く）
+     * @returns {Array<string>} 評価項目の配列
+     */
+    _getDefaultEvaluationItems() {
+        return [...this.defaultItems.slice(DiaryApp.CONSTANTS.DEFAULT_GOAL_INDEX + 1)];
+    }
+
+    /**
+     * イベントリスナーを設定
+     * @private
+     */
+    _setupEventListeners() {
         // ページを閉じる前/リロード前に自動保存
         window.addEventListener('beforeunload', (e) => {
-            // 未保存の変更がある場合のみ警告を表示
             if (this.hasUnsavedChanges) {
                 e.preventDefault();
                 e.returnValue = '保存されていない変更があります。このページを離れますか？';
@@ -93,13 +109,13 @@ class DiaryApp {
             }
         });
 
-        // 定期的な自動保存（2分ごと）
+        // 定期的な自動保存
         setInterval(() => {
             if (this.hasUnsavedChanges && this.syncSettings.githubToken) {
                 console.log('Auto-saving data...');
                 this.autoSave();
             }
-        }, 120000);
+        }, DiaryApp.CONSTANTS.AUTO_SAVE_INTERVAL);
 
         // フォーム入力時の変更検知
         document.addEventListener('input', (e) => {
@@ -107,6 +123,40 @@ class DiaryApp {
                 this.markAsChanged();
             }
         });
+    }
+
+    init() {
+        this.uiRenderer.hideLoading();
+        this.updateWeekDisplay();
+        this.initializeWeekData();
+        this.uiRenderer.renderDiary();
+        this.updateNavigationButtons();
+        
+        // 設定を読み込み
+        this.loadSettings();
+        this.loadParentsCommentVisibility();
+        
+        // イベントリスナーを設定
+        this._setupEventListeners();
+        
+        // 設定が保存されているかチェック
+        if (this._hasValidSettings()) {
+            this.showDiary();
+            this.loadData();
+        } else {
+            this.showSettings();
+        }
+    }
+
+    /**
+     * 有効な設定があるかチェック
+     * @returns {boolean} 設定が有効ならtrue
+     * @private
+     */
+    _hasValidSettings() {
+        return !!(this.syncSettings.githubToken && 
+                  this.syncSettings.repoOwner && 
+                  this.syncSettings.repoName);
     }
 
     // ==================== 週管理 ====================
@@ -117,7 +167,9 @@ class DiaryApp {
      * @returns {number} - 月曜日までの日数（負の値）
      */
     getMondayOffset(dayOfWeek) {
-        return dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        return dayOfWeek === DiaryApp.CONSTANTS.SUNDAY_INDEX 
+            ? -DiaryApp.CONSTANTS.DAYS_IN_MONDAY_OFFSET 
+            : DiaryApp.CONSTANTS.MONDAY_INDEX - dayOfWeek;
     }
 
     /**
@@ -126,16 +178,39 @@ class DiaryApp {
      * @returns {Date} - 第1週の月曜日
      */
     getFirstMondayOfYear(year) {
-        const jan4 = new Date(year, 0, 4, 12, 0, 0, 0);
+        const jan4 = new Date(year, 0, DiaryApp.CONSTANTS.JANUARY_4TH, 
+                             DiaryApp.CONSTANTS.NOON_HOUR, 0, 0, 0);
         const offset = this.getMondayOffset(jan4.getDay());
         const firstMonday = new Date(jan4);
         firstMonday.setDate(jan4.getDate() + offset);
         return firstMonday;
     }
 
+    /**
+     * 週番号を計算
+     * @param {Date} monday - 月曜日の日付
+     * @param {Date} firstMonday - その年の第1週の月曜日
+     * @returns {number} - 週番号
+     * @private
+     */
+    _calculateWeekNumber(monday, firstMonday) {
+        const daysDiff = Math.floor((monday - firstMonday) / DiaryApp.CONSTANTS.MS_PER_DAY);
+        return Math.floor(daysDiff / DiaryApp.CONSTANTS.DAYS_PER_WEEK) + 1;
+    }
+
+    /**
+     * 週番号を2桁の文字列にフォーマット
+     * @param {number} weekNumber - 週番号
+     * @returns {string} - フォーマットされた週番号
+     * @private
+     */
+    _formatWeekNumber(weekNumber) {
+        return String(weekNumber).padStart(2, '0');
+    }
+
     getCurrentWeek() {
         const now = new Date();
-        now.setHours(12, 0, 0, 0); // タイムゾーンの影響を避けるため正午に設定
+        now.setHours(DiaryApp.CONSTANTS.NOON_HOUR, 0, 0, 0); // タイムゾーンの影響を避けるため正午に設定
         const year = now.getFullYear();
         
         // 今週の月曜日を計算
@@ -147,28 +222,47 @@ class DiaryApp {
         const firstMonday = this.getFirstMondayOfYear(year);
         
         // 週番号を計算
-        const daysDiff = Math.floor((monday - firstMonday) / (24 * 60 * 60 * 1000));
-        const weekNumber = Math.floor(daysDiff / 7) + 1;
+        const weekNumber = this._calculateWeekNumber(monday, firstMonday);
         
         // 年をまたぐ場合の処理
-        if (weekNumber < 1) {
-            // 前年の最終週
-            const prevYear = year - 1;
-            const prevFirstMonday = this.getFirstMondayOfYear(prevYear);
-            const lastMonday = new Date(prevYear, 11, 31, 12, 0, 0, 0);
-            const dec31Offset = this.getMondayOffset(lastMonday.getDay());
-            lastMonday.setDate(lastMonday.getDate() + dec31Offset);
-            const lastWeek = Math.floor((lastMonday - prevFirstMonday) / (7 * 24 * 60 * 60 * 1000)) + 1;
-            return `${prevYear}-W${String(lastWeek).padStart(2, '0')}`;
-        } else if (weekNumber > 52) {
-            // 翌年の第1週の可能性をチェック
-            const nextFirstMonday = this.getFirstMondayOfYear(year + 1);
-            if (monday >= nextFirstMonday) {
-                return `${year + 1}-W01`;
-            }
+        if (weekNumber < DiaryApp.CONSTANTS.MIN_WEEK_NUMBER) {
+            return this._getPreviousYearLastWeek(year);
+        } else if (weekNumber > DiaryApp.CONSTANTS.MAX_WEEK_NUMBER) {
+            return this._getNextYearFirstWeek(year, monday);
         }
         
-        return `${year}-W${String(weekNumber).padStart(2, '0')}`;
+        return `${year}-W${this._formatWeekNumber(weekNumber)}`;
+    }
+
+    /**
+     * 前年の最終週を取得
+     * @param {number} year - 現在の年
+     * @returns {string} - 週識別子
+     * @private
+     */
+    _getPreviousYearLastWeek(year) {
+        const prevYear = year - 1;
+        const prevFirstMonday = this.getFirstMondayOfYear(prevYear);
+        const lastMonday = new Date(prevYear, 11, 31, DiaryApp.CONSTANTS.NOON_HOUR, 0, 0, 0);
+        const dec31Offset = this.getMondayOffset(lastMonday.getDay());
+        lastMonday.setDate(lastMonday.getDate() + dec31Offset);
+        const lastWeek = this._calculateWeekNumber(lastMonday, prevFirstMonday);
+        return `${prevYear}-W${this._formatWeekNumber(lastWeek)}`;
+    }
+
+    /**
+     * 翌年の第1週を取得（該当する場合）
+     * @param {number} year - 現在の年
+     * @param {Date} monday - 現在の月曜日
+     * @returns {string} - 週識別子
+     * @private
+     */
+    _getNextYearFirstWeek(year, monday) {
+        const nextFirstMonday = this.getFirstMondayOfYear(year + 1);
+        if (monday >= nextFirstMonday) {
+            return `${year + 1}-W01`;
+        }
+        return `${year}-W${this._formatWeekNumber(DiaryApp.CONSTANTS.MAX_WEEK_NUMBER)}`;
     }
 
     updateWeekDisplay() {
@@ -176,35 +270,68 @@ class DiaryApp {
     }
 
     async changeWeek(direction) {
-        // 現在の週のデータを自動保存（GitHubに設定がある場合のみ）
-        if (this.syncSettings.githubToken && this.syncSettings.repoOwner && this.syncSettings.repoName) {
-            const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
-            
-            if (hasData) {
-                this.uiRenderer.showLoading();
-                this.uiRenderer.showSyncStatus('💾 自動保存中...', 'loading');
-                await this.saveData();
-            }
+        // 現在の週のデータを自動保存
+        await this._autoSaveBeforeWeekChange();
+
+        // 新しい週を計算
+        const newWeek = this._calculateNewWeek(direction);
+        
+        // 週を変更
+        this._updateCurrentWeek(newWeek);
+        this.loadData();
+    }
+
+    /**
+     * 週変更前に自動保存
+     * @private
+     */
+    async _autoSaveBeforeWeekChange() {
+        if (!this._hasValidSettings()) {
+            return;
         }
 
+        const hasData = this.weekData && !this.isWeekDataEmpty(this.weekData);
+        
+        if (hasData) {
+            this.uiRenderer.showLoading();
+            this.uiRenderer.showSyncStatus('💾 自動保存中...', 'loading');
+            await this.saveData();
+        }
+    }
+
+    /**
+     * 新しい週番号を計算
+     * @param {number} direction - 週の移動方向（+1/-1）
+     * @returns {string} - 新しい週識別子
+     * @private
+     */
+    _calculateNewWeek(direction) {
         const [year, week] = this.currentWeek.split('-W');
         let newWeek = parseInt(week) + direction;
         let newYear = parseInt(year);
         
-        if (newWeek < 1) {
-            newWeek = 52;
+        if (newWeek < DiaryApp.CONSTANTS.MIN_WEEK_NUMBER) {
+            newWeek = DiaryApp.CONSTANTS.MAX_WEEK_NUMBER;
             newYear--;
-        } else if (newWeek > 52) {
-            newWeek = 1;
+        } else if (newWeek > DiaryApp.CONSTANTS.MAX_WEEK_NUMBER) {
+            newWeek = DiaryApp.CONSTANTS.MIN_WEEK_NUMBER;
             newYear++;
         }
         
-        this.currentWeek = `${newYear}-W${String(newWeek).padStart(2, '0')}`;
+        return `${newYear}-W${this._formatWeekNumber(newWeek)}`;
+    }
+
+    /**
+     * 現在の週を更新
+     * @param {string} newWeek - 新しい週識別子
+     * @private
+     */
+    _updateCurrentWeek(newWeek) {
+        this.currentWeek = newWeek;
         this.updateWeekDisplay();
-        this.weekData = null; // 週変更時にデータをリセット
+        this.weekData = null;
         this.initializeWeekData();
         this.uiRenderer.renderDiary();
-        this.loadData(); // 週変更時にもデータ読込
     }
 
     // ==================== データ管理 ====================
@@ -214,38 +341,62 @@ class DiaryApp {
      * 優先順位: evaluationItems > responsesのキー > lastUsedItems > デフォルト
      */
     loadEvaluationItems(weekData) {
-        if (weekData.evaluationItems && weekData.evaluationItems.length > 0) {
-            // 新形式: 明示的に保存された項目
+        if (this._hasExplicitEvaluationItems(weekData)) {
             this.evaluationItems = [...weekData.evaluationItems];
-        } else if (weekData.dailyRecords && weekData.dailyRecords.length > 0) {
-            // 旧形式: responsesのキーから抽出
-            const itemsSet = new Set();
-            weekData.dailyRecords.forEach(record => {
-                if (record.responses) {
-                    Object.keys(record.responses).forEach(item => {
-                        itemsSet.add(item);
-                    });
-                }
-            });
-            if (itemsSet.size > 0) {
-                this.evaluationItems = Array.from(itemsSet);
-            } else if (this.lastUsedItems && this.lastUsedItems.length > 0) {
-                // 前回使用した項目
-                this.evaluationItems = [...this.lastUsedItems];
-            } else {
-                // デフォルト項目
-                this.evaluationItems = [...this.defaultItems.slice(1)];
-            }
+        } else if (this._hasResponsesData(weekData)) {
+            this.evaluationItems = this._extractItemsFromResponses(weekData);
         } else if (this.lastUsedItems && this.lastUsedItems.length > 0) {
-            // データなし、前回使用した項目を使用
             this.evaluationItems = [...this.lastUsedItems];
         } else {
-            // データなし、デフォルト項目を使用
-            this.evaluationItems = [...this.defaultItems.slice(1)];
+            this.evaluationItems = this._getDefaultEvaluationItems();
         }
         
-        // lastUsedItemsを更新
         this.lastUsedItems = [...this.evaluationItems];
+    }
+
+    /**
+     * 明示的な評価項目があるかチェック
+     * @param {Object} weekData - 週データ
+     * @returns {boolean}
+     * @private
+     */
+    _hasExplicitEvaluationItems(weekData) {
+        return weekData.evaluationItems && weekData.evaluationItems.length > 0;
+    }
+
+    /**
+     * responsesデータがあるかチェック
+     * @param {Object} weekData - 週データ
+     * @returns {boolean}
+     * @private
+     */
+    _hasResponsesData(weekData) {
+        return weekData.dailyRecords && weekData.dailyRecords.length > 0;
+    }
+
+    /**
+     * responsesから評価項目を抽出
+     * @param {Object} weekData - 週データ
+     * @returns {Array<string>} - 評価項目の配列
+     * @private
+     */
+    _extractItemsFromResponses(weekData) {
+        const itemsSet = new Set();
+        weekData.dailyRecords.forEach(record => {
+            if (record.responses) {
+                Object.keys(record.responses).forEach(item => {
+                    itemsSet.add(item);
+                });
+            }
+        });
+        
+        if (itemsSet.size > 0) {
+            return Array.from(itemsSet);
+        }
+        
+        return this.lastUsedItems && this.lastUsedItems.length > 0
+            ? [...this.lastUsedItems]
+            : this._getDefaultEvaluationItems();
     }
 
     initializeWeekData() {
@@ -265,36 +416,41 @@ class DiaryApp {
         const [year, week] = this.currentWeek.split('-W');
         const startDate = this.getDateOfWeek(parseInt(year), parseInt(week));
 
-        const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
-
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() + i);
-            
-            const responses = {};
-            this.evaluationItems.forEach(item => {
-                responses[item] = '';
-            });
-            
-            records.push({
-                date: date.toISOString().split('T')[0],
-                dayOfWeek: dayNames[i],
-                responses: responses,
-                reflection: ''
-            });
+        for (let i = 0; i < DiaryApp.CONSTANTS.DAYS_PER_WEEK; i++) {
+            records.push(this._createDailyRecord(startDate, i));
         }
         
         return records;
     }
 
+    /**
+     * 1日分のレコードを作成
+     * @param {Date} startDate - 週の開始日（月曜日）
+     * @param {number} dayOffset - 日のオフセット（0-6）
+     * @returns {Object} - 日別レコード
+     * @private
+     */
+    _createDailyRecord(startDate, dayOffset) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + dayOffset);
+        
+        const responses = {};
+        this.evaluationItems.forEach(item => {
+            responses[item] = '';
+        });
+        
+        return {
+            date: date.toISOString().split('T')[0],
+            dayOfWeek: DiaryApp.DAY_NAMES[dayOffset],
+            responses: responses,
+            reflection: ''
+        };
+    }
+
     getDateOfWeek(year, week) {
-        // 第1週の月曜日を取得
         const firstMonday = this.getFirstMondayOfYear(year);
-        
-        // 指定された週の月曜日を計算
         const targetMonday = new Date(firstMonday);
-        targetMonday.setDate(firstMonday.getDate() + (week - 1) * 7);
-        
+        targetMonday.setDate(firstMonday.getDate() + (week - 1) * DiaryApp.CONSTANTS.DAYS_PER_WEEK);
         return targetMonday;
     }
 
@@ -363,35 +519,54 @@ class DiaryApp {
     changeDay(direction) {
         const newIndex = this.currentDayIndex + direction;
         
-        // 範囲チェック（0-6の範囲内）
-        if (newIndex >= 0 && newIndex < 7) {
+        if (this._isValidDayIndex(newIndex)) {
             this.currentDayIndex = newIndex;
             this.uiRenderer.renderDiary();
         }
+    }
+
+    /**
+     * 有効な日インデックスかチェック
+     * @param {number} index - 日のインデックス
+     * @returns {boolean}
+     * @private
+     */
+    _isValidDayIndex(index) {
+        return index >= DiaryApp.CONSTANTS.FIRST_DAY_INDEX && 
+               index <= DiaryApp.CONSTANTS.LAST_DAY_INDEX;
     }
 
     // ==================== 親コメント管理 ====================
 
     toggleParentsComment() {
         this.showParentsComment = !this.showParentsComment;
-        // 表示状態をlocalStorageに保存
-        try {
-            localStorage.setItem('diary-show-parents-comment', JSON.stringify(this.showParentsComment));
-        } catch (error) {
-            console.error('Failed to save parents comment visibility:', error);
-        }
+        this._saveParentsCommentVisibility();
         this.uiRenderer.renderDiary();
     }
 
     loadParentsCommentVisibility() {
-        // localStorageから表示状態を読み込み
         try {
-            const saved = localStorage.getItem('diary-show-parents-comment');
+            const saved = localStorage.getItem(DiaryApp.CONSTANTS.STORAGE_KEY_PARENTS_COMMENT);
             if (saved !== null) {
                 this.showParentsComment = JSON.parse(saved);
             }
         } catch (error) {
             console.error('Failed to load parents comment visibility:', error);
+        }
+    }
+
+    /**
+     * 親コメント表示状態を保存
+     * @private
+     */
+    _saveParentsCommentVisibility() {
+        try {
+            localStorage.setItem(
+                DiaryApp.CONSTANTS.STORAGE_KEY_PARENTS_COMMENT, 
+                JSON.stringify(this.showParentsComment)
+            );
+        } catch (error) {
+            console.error('Failed to save parents comment visibility:', error);
         }
     }
 
@@ -461,26 +636,35 @@ class DiaryApp {
         this.syncSettings.repoOwner = document.getElementById('repoOwner').value;
         this.syncSettings.repoName = document.getElementById('repoName').value;
         
-        // localStorageに設定を保存
-        try {
-            localStorage.setItem('diary-github-settings', JSON.stringify(this.syncSettings));
-        } catch (error) {
-            console.error('Failed to save settings to localStorage:', error);
-        }
+        this._saveSettingsToStorage();
         
         this.uiRenderer.showStatusMessage('設定が保存されました', 'success');
         this.hideSettings();
         
         // 設定保存後、GitHubからデータを同期
-        if (this.syncSettings.githubToken && this.syncSettings.repoOwner && this.syncSettings.repoName) {
+        if (this._hasValidSettings()) {
             this.loadData();
         }
     }
 
-    loadSettings() {
-        // localStorageから設定を読み込み
+    /**
+     * 設定をlocalStorageに保存
+     * @private
+     */
+    _saveSettingsToStorage() {
         try {
-            const savedSettings = localStorage.getItem('diary-github-settings');
+            localStorage.setItem(
+                DiaryApp.CONSTANTS.STORAGE_KEY_SETTINGS, 
+                JSON.stringify(this.syncSettings)
+            );
+        } catch (error) {
+            console.error('Failed to save settings to localStorage:', error);
+        }
+    }
+
+    loadSettings() {
+        try {
+            const savedSettings = localStorage.getItem(DiaryApp.CONSTANTS.STORAGE_KEY_SETTINGS);
             if (savedSettings) {
                 this.syncSettings = JSON.parse(savedSettings);
                 console.log('Settings loaded from localStorage');
@@ -694,40 +878,14 @@ class DiaryApp {
         this.uiRenderer.showLoading();
         
         try {
-            // プレビューモードに切り替え
             this.showPreview();
-            
-            // 少し待ってからキャプチャ（レンダリング完了を待つ）
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await this._waitForRender();
             
             const element = document.getElementById('previewContent');
             element.classList.add('export-mode');
             
-            // デスクトップサイズで出力（スマホでも全体が表示されるように）
-            const exportWidth = Math.max(element.scrollWidth, 1200); // 最低1200pxを確保
-            const exportHeight = element.scrollHeight;
-            
-            const options = {
-                scale: 2, // スケールを下げてファイルサイズを抑える
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                width: exportWidth,
-                height: exportHeight,
-                windowWidth: 1400, // デスクトップ幅でレンダリング
-                windowHeight: exportHeight,
-                scrollX: 0,
-                scrollY: 0,
-                imageTimeout: 60000
-            };
-            
-            const canvas = await html2canvas(element, options);
-            
-            // 画像をダウンロード
-            const link = document.createElement('a');
-            link.download = `diary-${this.currentWeek}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            const canvas = await this._captureElementAsCanvas(element);
+            this._downloadCanvas(canvas, `diary-${this.currentWeek}.png`);
             
             element.classList.remove('export-mode');
             this.uiRenderer.showStatusMessage('画像がダウンロードされました', 'success');
@@ -740,47 +898,60 @@ class DiaryApp {
         }
     }
 
+    /**
+     * レンダリング完了を待つ
+     * @private
+     */
+    async _waitForRender() {
+        await new Promise(resolve => setTimeout(resolve, DiaryApp.CONSTANTS.RENDER_DELAY));
+    }
+
+    /**
+     * 要素をキャンバスとしてキャプチャ
+     * @param {HTMLElement} element - キャプチャする要素
+     * @returns {Promise<HTMLCanvasElement>}
+     * @private
+     */
+    async _captureElementAsCanvas(element) {
+        const exportWidth = Math.max(element.scrollWidth, DiaryApp.CONSTANTS.EXPORT_MIN_WIDTH);
+        const exportHeight = element.scrollHeight;
+        
+        const options = {
+            scale: DiaryApp.CONSTANTS.EXPORT_SCALE,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            width: exportWidth,
+            height: exportHeight,
+            windowWidth: DiaryApp.CONSTANTS.EXPORT_WINDOW_WIDTH,
+            windowHeight: exportHeight,
+            scrollX: 0,
+            scrollY: 0,
+            imageTimeout: DiaryApp.CONSTANTS.EXPORT_TIMEOUT
+        };
+        
+        return await html2canvas(element, options);
+    }
+
+    /**
+     * キャンバスを画像ファイルとしてダウンロード
+     * @param {HTMLCanvasElement} canvas - キャンバス
+     * @param {string} filename - ファイル名
+     * @private
+     */
+    _downloadCanvas(canvas, filename) {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+
     async copyEvaluationTable() {
         try {
-            // プレビューモードに切り替え
             this.showPreview();
+            await this._waitForRender();
             
-            // 少し待ってからテキストを生成
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // TSV形式（タブ区切り）で評価表を生成
-            let tsvLines = [];
-            
-            // ヘッダー行1: 「評価項目」と各日の日付
-            let headerRow1 = ['評価項目'];
-            this.weekData.dailyRecords.forEach(record => {
-                const date = new Date(record.date);
-                const formattedDate = `${date.getMonth() + 1}月${date.getDate()}日`;
-                headerRow1.push(formattedDate);
-            });
-            tsvLines.push(headerRow1.join('\t'));
-            
-            // ヘッダー行2: 空白と曜日
-            let headerRow2 = [''];
-            this.weekData.dailyRecords.forEach(record => {
-                headerRow2.push(`(${record.dayOfWeek})`);
-            });
-            tsvLines.push(headerRow2.join('\t'));
-            
-            // 各評価項目の行
-            this.evaluationItems.forEach(item => {
-                let row = [item];
-                this.weekData.dailyRecords.forEach(record => {
-                    const value = record.responses[item] || '-';
-                    row.push(value);
-                });
-                tsvLines.push(row.join('\t'));
-            });
-            
-            // TSVテキストとして結合
-            const tsvText = tsvLines.join('\n');
-            
-            // クリップボードにコピー
+            const tsvText = this._generateEvaluationTableTSV();
             await navigator.clipboard.writeText(tsvText);
             this.uiRenderer.showStatusMessage('✅ 評価表をクリップボードにコピーしました', 'success');
             
@@ -790,32 +961,47 @@ class DiaryApp {
         }
     }
 
+    /**
+     * 評価表のTSVテキストを生成
+     * @returns {string} - TSV形式のテキスト
+     * @private
+     */
+    _generateEvaluationTableTSV() {
+        const tsvLines = [];
+        
+        // ヘッダー行1: 「評価項目」と各日の日付
+        const headerRow1 = ['評価項目'];
+        this.weekData.dailyRecords.forEach(record => {
+            const date = new Date(record.date);
+            headerRow1.push(`${date.getMonth() + 1}月${date.getDate()}日`);
+        });
+        tsvLines.push(headerRow1.join('\t'));
+        
+        // ヘッダー行2: 空白と曜日
+        const headerRow2 = [''];
+        this.weekData.dailyRecords.forEach(record => {
+            headerRow2.push(`(${record.dayOfWeek})`);
+        });
+        tsvLines.push(headerRow2.join('\t'));
+        
+        // 各評価項目の行
+        this.evaluationItems.forEach(item => {
+            const row = [item];
+            this.weekData.dailyRecords.forEach(record => {
+                row.push(record.responses[item] || '-');
+            });
+            tsvLines.push(row.join('\t'));
+        });
+        
+        return tsvLines.join('\n');
+    }
+
     async copyReflectionTable() {
         try {
-            // プレビューモードに切り替え
             this.showPreview();
+            await this._waitForRender();
             
-            // 少し待ってからテキストを生成
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // TSV形式（タブ区切り）で感想表を生成
-            let tsvLines = [];
-            
-            // ヘッダー行
-            tsvLines.push(['日付', '感想・気づき'].join('\t'));
-            
-            // 各日の感想
-            this.weekData.dailyRecords.forEach(record => {
-                const date = new Date(record.date);
-                const formattedDate = `${date.getMonth() + 1}/${date.getDate()}(${record.dayOfWeek})`;
-                const reflection = record.reflection || '';
-                tsvLines.push([formattedDate, reflection].join('\t'));
-            });
-            
-            // TSVテキストとして結合
-            const tsvText = tsvLines.join('\n');
-            
-            // クリップボードにコピー
+            const tsvText = this._generateReflectionTableTSV();
             await navigator.clipboard.writeText(tsvText);
             this.uiRenderer.showStatusMessage('✅ 感想・気づきをクリップボードにコピーしました', 'success');
             
@@ -825,60 +1011,77 @@ class DiaryApp {
         }
     }
 
+    /**
+     * 感想表のTSVテキストを生成
+     * @returns {string} - TSV形式のテキスト
+     * @private
+     */
+    _generateReflectionTableTSV() {
+        const tsvLines = [];
+        
+        // ヘッダー行
+        tsvLines.push(['日付', '感想・気づき'].join('\t'));
+        
+        // 各日の感想
+        this.weekData.dailyRecords.forEach(record => {
+            const date = new Date(record.date);
+            const formattedDate = `${date.getMonth() + 1}/${date.getDate()}(${record.dayOfWeek})`;
+            const reflection = record.reflection || '';
+            tsvLines.push([formattedDate, reflection].join('\t'));
+        });
+        
+        return tsvLines.join('\n');
+    }
+
     async copyImageToClipboard() {
         this.uiRenderer.showLoading();
         
         try {
-            // プレビューモードに切り替え
             this.showPreview();
-            
-            // 少し待ってからキャプチャ（レンダリング完了を待つ）
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await this._waitForRender();
             
             const element = document.getElementById('previewContent');
             element.classList.add('export-mode');
             
-            // デスクトップサイズで出力（スマホでも全体が表示されるように）
-            const exportWidth = Math.max(element.scrollWidth, 1200);
-            const exportHeight = element.scrollHeight;
+            const canvas = await this._captureElementAsCanvas(element);
+            const blob = await this._canvasToBlob(canvas);
             
-            const options = {
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                width: exportWidth,
-                height: exportHeight,
-                windowWidth: 1400,
-                windowHeight: exportHeight,
-                scrollX: 0,
-                scrollY: 0,
-                imageTimeout: 60000
-            };
-            
-            const canvas = await html2canvas(element, options);
-            
-            // CanvasをBlobに変換
-            const blob = await new Promise(resolve => {
-                canvas.toBlob(resolve, 'image/png');
-            });
-            
-            // ClipboardItem APIを使用して画像をクリップボードにコピー
-            if (navigator.clipboard && navigator.clipboard.write) {
-                const clipboardItem = new ClipboardItem({ 'image/png': blob });
-                await navigator.clipboard.write([clipboardItem]);
-                this.uiRenderer.showStatusMessage('✅ 画像をクリップボードにコピーしました', 'success');
-            } else {
-                throw new Error('お使いのブラウザはクリップボードへの画像コピーに対応していません');
-            }
+            await this._copyBlobToClipboard(blob);
             
             element.classList.remove('export-mode');
+            this.uiRenderer.showStatusMessage('✅ 画像をクリップボードにコピーしました', 'success');
             
         } catch (error) {
             console.error('Copy image error:', error);
             this.uiRenderer.showStatusMessage('❌ 画像コピーエラー: ' + error.message, 'error');
         } finally {
             this.uiRenderer.hideLoading();
+        }
+    }
+
+    /**
+     * キャンバスをBlobに変換
+     * @param {HTMLCanvasElement} canvas - キャンバス
+     * @returns {Promise<Blob>}
+     * @private
+     */
+    async _canvasToBlob(canvas) {
+        return new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/png');
+        });
+    }
+
+    /**
+     * Blobをクリップボードにコピー
+     * @param {Blob} blob - 画像Blob
+     * @private
+     */
+    async _copyBlobToClipboard(blob) {
+        if (navigator.clipboard && navigator.clipboard.write) {
+            const clipboardItem = new ClipboardItem({ 'image/png': blob });
+            await navigator.clipboard.write([clipboardItem]);
+        } else {
+            throw new Error('お使いのブラウザはクリップボードへの画像コピーに対応していません');
         }
     }
 }
