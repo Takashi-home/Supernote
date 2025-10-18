@@ -1,13 +1,13 @@
 // UI描画機能モジュール
 
-class UIRenderer {
-    // 定数
-    static CONSTANTS = {
-        STATUS_MESSAGE_DURATION: 3000, // 3秒（ミリ秒）
-        ITEM_TEXT_MAX_LENGTH: 15,
-        RADIO_UNCHECK_DELAY: 10 // ミリ秒
-    };
+// UI描画定数
+const UI_CONSTANTS = {
+    STATUS_MESSAGE_DURATION: 3000, // 3秒（ミリ秒）
+    ITEM_TEXT_MAX_LENGTH: 15,
+    RADIO_UNCHECK_DELAY: 10 // ミリ秒
+};
 
+class UIRenderer {
     constructor(app) {
         this.app = app;
     }
@@ -259,7 +259,7 @@ class UIRenderer {
      */
     _createEvaluationItemHTML(item, itemIndex, record, dayIndex) {
         const safeItemId = `item-${dayIndex}-${itemIndex}`;
-        const radioButtons = DiaryApp.CHECK_OPTIONS
+        const radioButtons = CHECK_OPTIONS
             .map(option => this._createRadioButtonHTML(safeItemId, option, record.responses[item]))
             .join('');
         
@@ -317,7 +317,6 @@ class UIRenderer {
      * @param {number} dayIndex - 日のインデックス
      * @private
      */
-    _attachEvaluationListeners(dayEntry, dayIndex) {
     /**
      * 評価項目のイベントリスナーを追加
      * @param {HTMLElement} dayEntry - 日記エントリー要素
@@ -356,19 +355,13 @@ class UIRenderer {
             setTimeout(() => {
                 radioInputs.forEach(r => r.checked = false);
                 this.app.setEvaluation(dayIdx, item, '');
-            }, UIRenderer.CONSTANTS.RADIO_UNCHECK_DELAY);
+            }, UI_CONSTANTS.RADIO_UNCHECK_DELAY);
         } else {
             // 新しい値を設定
             this.app.setEvaluation(dayIdx, item, radio.value);
         }
     }
 
-    /**
-     * 感想のイベントリスナーを追加
-     * @param {HTMLElement} dayEntry - 日記エントリー要素
-     * @private
-     */
-    _attachReflectionListener(dayEntry) {
     /**
      * 感想のイベントリスナーを追加
      * @param {HTMLElement} dayEntry - 日記エントリー要素
@@ -460,8 +453,8 @@ class UIRenderer {
      * @private
      */
     _createTableRow(item) {
-        const displayText = item.length > UIRenderer.CONSTANTS.ITEM_TEXT_MAX_LENGTH 
-            ? item.substring(0, UIRenderer.CONSTANTS.ITEM_TEXT_MAX_LENGTH) + '...' 
+        const displayText = item.length > UI_CONSTANTS.ITEM_TEXT_MAX_LENGTH 
+            ? item.substring(0, UI_CONSTANTS.ITEM_TEXT_MAX_LENGTH) + '...' 
             : item;
         
         const cells = this.app.weekData.dailyRecords
@@ -584,7 +577,7 @@ class UIRenderer {
             setTimeout(() => {
                 statusElement.textContent = '';
                 statusElement.className = 'sync-status';
-            }, UIRenderer.CONSTANTS.STATUS_MESSAGE_DURATION);
+            }, UI_CONSTANTS.STATUS_MESSAGE_DURATION);
         }
     }
 
@@ -599,7 +592,7 @@ class UIRenderer {
         
         setTimeout(() => {
             document.body.removeChild(messageDiv);
-        }, UIRenderer.CONSTANTS.STATUS_MESSAGE_DURATION);
+        }, UI_CONSTANTS.STATUS_MESSAGE_DURATION);
     }
 
     /**

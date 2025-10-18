@@ -1,46 +1,46 @@
 // スーパーノート日記アプリ - メインアプリケーション
 
+// アプリケーション定数
+const APP_CONSTANTS = {
+    AUTO_SAVE_INTERVAL: 120000, // 2分（ミリ秒）
+    STATUS_MESSAGE_DURATION: 3000, // 3秒（ミリ秒）
+    DAYS_PER_WEEK: 7,
+    FIRST_DAY_INDEX: 0,
+    LAST_DAY_INDEX: 6,
+    MIN_WEEK_NUMBER: 1,
+    MAX_WEEK_NUMBER: 52,
+    MONDAY_INDEX: 1,
+    SUNDAY_INDEX: 0,
+    DAYS_IN_MONDAY_OFFSET: 6,
+    NOON_HOUR: 12,
+    JANUARY_4TH: 4,
+    MS_PER_DAY: 24 * 60 * 60 * 1000,
+    RENDER_DELAY: 100, // レンダリング待機時間（ミリ秒）
+    CHECKBOX_UNCHECK_DELAY: 10, // チェックボックス解除の遅延（ミリ秒）
+    MAX_DEBUG_LINES: 11,
+    EXPORT_MIN_WIDTH: 1200,
+    EXPORT_WINDOW_WIDTH: 1400,
+    EXPORT_SCALE: 2,
+    EXPORT_TIMEOUT: 60000,
+    STORAGE_KEY_SETTINGS: 'diary-github-settings',
+    STORAGE_KEY_PARENTS_COMMENT: 'diary-show-parents-comment',
+    DEFAULT_GOAL_INDEX: 0
+};
+
+const DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日'];
+
+const CHECK_OPTIONS = [
+    { value: '⭕️', label: '⭕️', color: '#22c55e', class: 'success' },
+    { value: '✖️', label: '✖️', color: '#ef4444', class: 'error' },
+    { value: '△', label: '△', color: '#f59e0b', class: 'warning' }
+];
+
 class DiaryApp {
-    // 定数定義
-    static CONSTANTS = {
-        AUTO_SAVE_INTERVAL: 120000, // 2分（ミリ秒）
-        STATUS_MESSAGE_DURATION: 3000, // 3秒（ミリ秒）
-        DAYS_PER_WEEK: 7,
-        FIRST_DAY_INDEX: 0,
-        LAST_DAY_INDEX: 6,
-        MIN_WEEK_NUMBER: 1,
-        MAX_WEEK_NUMBER: 52,
-        MONDAY_INDEX: 1,
-        SUNDAY_INDEX: 0,
-        DAYS_IN_MONDAY_OFFSET: 6,
-        NOON_HOUR: 12,
-        JANUARY_4TH: 4,
-        MS_PER_DAY: 24 * 60 * 60 * 1000,
-        RENDER_DELAY: 100, // レンダリング待機時間（ミリ秒）
-        CHECKBOX_UNCHECK_DELAY: 10, // チェックボックス解除の遅延（ミリ秒）
-        MAX_DEBUG_LINES: 11,
-        EXPORT_MIN_WIDTH: 1200,
-        EXPORT_WINDOW_WIDTH: 1400,
-        EXPORT_SCALE: 2,
-        EXPORT_TIMEOUT: 60000,
-        STORAGE_KEY_SETTINGS: 'diary-github-settings',
-        STORAGE_KEY_PARENTS_COMMENT: 'diary-show-parents-comment',
-        DEFAULT_GOAL_INDEX: 0
-    };
-
-    static DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日'];
-
-    static CHECK_OPTIONS = [
-        { value: '⭕️', label: '⭕️', color: '#22c55e', class: 'success' },
-        { value: '✖️', label: '✖️', color: '#ef4444', class: 'error' },
-        { value: '△', label: '△', color: '#f59e0b', class: 'warning' }
-    ];
-
     constructor() {
         // 現在の週
         this.currentWeek = this.getCurrentWeek();
         this.currentView = 'diary';
-        this.currentDayIndex = DiaryApp.CONSTANTS.FIRST_DAY_INDEX;
+        this.currentDayIndex = APP_CONSTANTS.FIRST_DAY_INDEX;
         this.weekData = null;
         this.autoSaveTimer = null; // 自動保存用タイマー
         this.hasUnsavedChanges = false; // 未保存の変更があるか
@@ -92,7 +92,7 @@ class DiaryApp {
      * @returns {Array<string>} 評価項目の配列
      */
     _getDefaultEvaluationItems() {
-        return [...this.defaultItems.slice(DiaryApp.CONSTANTS.DEFAULT_GOAL_INDEX + 1)];
+        return [...this.defaultItems.slice(APP_CONSTANTS.DEFAULT_GOAL_INDEX + 1)];
     }
 
     /**
@@ -115,7 +115,7 @@ class DiaryApp {
                 console.log('Auto-saving data...');
                 this.autoSave();
             }
-        }, DiaryApp.CONSTANTS.AUTO_SAVE_INTERVAL);
+        }, APP_CONSTANTS.AUTO_SAVE_INTERVAL);
 
         // フォーム入力時の変更検知
         document.addEventListener('input', (e) => {
@@ -167,9 +167,9 @@ class DiaryApp {
      * @returns {number} - 月曜日までの日数（負の値）
      */
     getMondayOffset(dayOfWeek) {
-        return dayOfWeek === DiaryApp.CONSTANTS.SUNDAY_INDEX 
-            ? -DiaryApp.CONSTANTS.DAYS_IN_MONDAY_OFFSET 
-            : DiaryApp.CONSTANTS.MONDAY_INDEX - dayOfWeek;
+        return dayOfWeek === APP_CONSTANTS.SUNDAY_INDEX 
+            ? -APP_CONSTANTS.DAYS_IN_MONDAY_OFFSET 
+            : APP_CONSTANTS.MONDAY_INDEX - dayOfWeek;
     }
 
     /**
@@ -178,8 +178,8 @@ class DiaryApp {
      * @returns {Date} - 第1週の月曜日
      */
     getFirstMondayOfYear(year) {
-        const jan4 = new Date(year, 0, DiaryApp.CONSTANTS.JANUARY_4TH, 
-                             DiaryApp.CONSTANTS.NOON_HOUR, 0, 0, 0);
+        const jan4 = new Date(year, 0, APP_CONSTANTS.JANUARY_4TH, 
+                             APP_CONSTANTS.NOON_HOUR, 0, 0, 0);
         const offset = this.getMondayOffset(jan4.getDay());
         const firstMonday = new Date(jan4);
         firstMonday.setDate(jan4.getDate() + offset);
@@ -194,8 +194,8 @@ class DiaryApp {
      * @private
      */
     _calculateWeekNumber(monday, firstMonday) {
-        const daysDiff = Math.floor((monday - firstMonday) / DiaryApp.CONSTANTS.MS_PER_DAY);
-        return Math.floor(daysDiff / DiaryApp.CONSTANTS.DAYS_PER_WEEK) + 1;
+        const daysDiff = Math.floor((monday - firstMonday) / APP_CONSTANTS.MS_PER_DAY);
+        return Math.floor(daysDiff / APP_CONSTANTS.DAYS_PER_WEEK) + 1;
     }
 
     /**
@@ -210,7 +210,7 @@ class DiaryApp {
 
     getCurrentWeek() {
         const now = new Date();
-        now.setHours(DiaryApp.CONSTANTS.NOON_HOUR, 0, 0, 0); // タイムゾーンの影響を避けるため正午に設定
+        now.setHours(APP_CONSTANTS.NOON_HOUR, 0, 0, 0); // タイムゾーンの影響を避けるため正午に設定
         const year = now.getFullYear();
         
         // 今週の月曜日を計算
@@ -225,9 +225,9 @@ class DiaryApp {
         const weekNumber = this._calculateWeekNumber(monday, firstMonday);
         
         // 年をまたぐ場合の処理
-        if (weekNumber < DiaryApp.CONSTANTS.MIN_WEEK_NUMBER) {
+        if (weekNumber < APP_CONSTANTS.MIN_WEEK_NUMBER) {
             return this._getPreviousYearLastWeek(year);
-        } else if (weekNumber > DiaryApp.CONSTANTS.MAX_WEEK_NUMBER) {
+        } else if (weekNumber > APP_CONSTANTS.MAX_WEEK_NUMBER) {
             return this._getNextYearFirstWeek(year, monday);
         }
         
@@ -243,7 +243,7 @@ class DiaryApp {
     _getPreviousYearLastWeek(year) {
         const prevYear = year - 1;
         const prevFirstMonday = this.getFirstMondayOfYear(prevYear);
-        const lastMonday = new Date(prevYear, 11, 31, DiaryApp.CONSTANTS.NOON_HOUR, 0, 0, 0);
+        const lastMonday = new Date(prevYear, 11, 31, APP_CONSTANTS.NOON_HOUR, 0, 0, 0);
         const dec31Offset = this.getMondayOffset(lastMonday.getDay());
         lastMonday.setDate(lastMonday.getDate() + dec31Offset);
         const lastWeek = this._calculateWeekNumber(lastMonday, prevFirstMonday);
@@ -262,7 +262,7 @@ class DiaryApp {
         if (monday >= nextFirstMonday) {
             return `${year + 1}-W01`;
         }
-        return `${year}-W${this._formatWeekNumber(DiaryApp.CONSTANTS.MAX_WEEK_NUMBER)}`;
+        return `${year}-W${this._formatWeekNumber(APP_CONSTANTS.MAX_WEEK_NUMBER)}`;
     }
 
     updateWeekDisplay() {
@@ -310,11 +310,11 @@ class DiaryApp {
         let newWeek = parseInt(week) + direction;
         let newYear = parseInt(year);
         
-        if (newWeek < DiaryApp.CONSTANTS.MIN_WEEK_NUMBER) {
-            newWeek = DiaryApp.CONSTANTS.MAX_WEEK_NUMBER;
+        if (newWeek < APP_CONSTANTS.MIN_WEEK_NUMBER) {
+            newWeek = APP_CONSTANTS.MAX_WEEK_NUMBER;
             newYear--;
-        } else if (newWeek > DiaryApp.CONSTANTS.MAX_WEEK_NUMBER) {
-            newWeek = DiaryApp.CONSTANTS.MIN_WEEK_NUMBER;
+        } else if (newWeek > APP_CONSTANTS.MAX_WEEK_NUMBER) {
+            newWeek = APP_CONSTANTS.MIN_WEEK_NUMBER;
             newYear++;
         }
         
@@ -416,7 +416,7 @@ class DiaryApp {
         const [year, week] = this.currentWeek.split('-W');
         const startDate = this.getDateOfWeek(parseInt(year), parseInt(week));
 
-        for (let i = 0; i < DiaryApp.CONSTANTS.DAYS_PER_WEEK; i++) {
+        for (let i = 0; i < APP_CONSTANTS.DAYS_PER_WEEK; i++) {
             records.push(this._createDailyRecord(startDate, i));
         }
         
@@ -441,7 +441,7 @@ class DiaryApp {
         
         return {
             date: date.toISOString().split('T')[0],
-            dayOfWeek: DiaryApp.DAY_NAMES[dayOffset],
+            dayOfWeek: DAY_NAMES[dayOffset],
             responses: responses,
             reflection: ''
         };
@@ -450,7 +450,7 @@ class DiaryApp {
     getDateOfWeek(year, week) {
         const firstMonday = this.getFirstMondayOfYear(year);
         const targetMonday = new Date(firstMonday);
-        targetMonday.setDate(firstMonday.getDate() + (week - 1) * DiaryApp.CONSTANTS.DAYS_PER_WEEK);
+        targetMonday.setDate(firstMonday.getDate() + (week - 1) * APP_CONSTANTS.DAYS_PER_WEEK);
         return targetMonday;
     }
 
@@ -532,8 +532,8 @@ class DiaryApp {
      * @private
      */
     _isValidDayIndex(index) {
-        return index >= DiaryApp.CONSTANTS.FIRST_DAY_INDEX && 
-               index <= DiaryApp.CONSTANTS.LAST_DAY_INDEX;
+        return index >= APP_CONSTANTS.FIRST_DAY_INDEX && 
+               index <= APP_CONSTANTS.LAST_DAY_INDEX;
     }
 
     // ==================== 親コメント管理 ====================
@@ -546,7 +546,7 @@ class DiaryApp {
 
     loadParentsCommentVisibility() {
         try {
-            const saved = localStorage.getItem(DiaryApp.CONSTANTS.STORAGE_KEY_PARENTS_COMMENT);
+            const saved = localStorage.getItem(APP_CONSTANTS.STORAGE_KEY_PARENTS_COMMENT);
             if (saved !== null) {
                 this.showParentsComment = JSON.parse(saved);
             }
@@ -562,7 +562,7 @@ class DiaryApp {
     _saveParentsCommentVisibility() {
         try {
             localStorage.setItem(
-                DiaryApp.CONSTANTS.STORAGE_KEY_PARENTS_COMMENT, 
+                APP_CONSTANTS.STORAGE_KEY_PARENTS_COMMENT, 
                 JSON.stringify(this.showParentsComment)
             );
         } catch (error) {
@@ -654,7 +654,7 @@ class DiaryApp {
     _saveSettingsToStorage() {
         try {
             localStorage.setItem(
-                DiaryApp.CONSTANTS.STORAGE_KEY_SETTINGS, 
+                APP_CONSTANTS.STORAGE_KEY_SETTINGS, 
                 JSON.stringify(this.syncSettings)
             );
         } catch (error) {
@@ -664,7 +664,7 @@ class DiaryApp {
 
     loadSettings() {
         try {
-            const savedSettings = localStorage.getItem(DiaryApp.CONSTANTS.STORAGE_KEY_SETTINGS);
+            const savedSettings = localStorage.getItem(APP_CONSTANTS.STORAGE_KEY_SETTINGS);
             if (savedSettings) {
                 this.syncSettings = JSON.parse(savedSettings);
                 console.log('Settings loaded from localStorage');
@@ -903,7 +903,7 @@ class DiaryApp {
      * @private
      */
     async _waitForRender() {
-        await new Promise(resolve => setTimeout(resolve, DiaryApp.CONSTANTS.RENDER_DELAY));
+        await new Promise(resolve => setTimeout(resolve, APP_CONSTANTS.RENDER_DELAY));
     }
 
     /**
@@ -913,21 +913,21 @@ class DiaryApp {
      * @private
      */
     async _captureElementAsCanvas(element) {
-        const exportWidth = Math.max(element.scrollWidth, DiaryApp.CONSTANTS.EXPORT_MIN_WIDTH);
+        const exportWidth = Math.max(element.scrollWidth, APP_CONSTANTS.EXPORT_MIN_WIDTH);
         const exportHeight = element.scrollHeight;
         
         const options = {
-            scale: DiaryApp.CONSTANTS.EXPORT_SCALE,
+            scale: APP_CONSTANTS.EXPORT_SCALE,
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff',
             width: exportWidth,
             height: exportHeight,
-            windowWidth: DiaryApp.CONSTANTS.EXPORT_WINDOW_WIDTH,
+            windowWidth: APP_CONSTANTS.EXPORT_WINDOW_WIDTH,
             windowHeight: exportHeight,
             scrollX: 0,
             scrollY: 0,
-            imageTimeout: DiaryApp.CONSTANTS.EXPORT_TIMEOUT
+            imageTimeout: APP_CONSTANTS.EXPORT_TIMEOUT
         };
         
         return await html2canvas(element, options);
