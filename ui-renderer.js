@@ -50,6 +50,9 @@ class UIRenderer {
         // 日別ナビゲーションを表示
         container.appendChild(this.createDayNavigation());
 
+        // 項目管理セクション
+        container.appendChild(this.createItemManagementSection());
+
         // 現在選択中の日のエントリーのみを表示
         const currentRecord = this.app.weekData.dailyRecords[this.app.currentDayIndex];
         container.appendChild(this.createDayEntry(currentRecord, this.app.currentDayIndex));
@@ -175,6 +178,100 @@ class UIRenderer {
             commentArea.appendChild(textarea);
             section.appendChild(commentArea);
         }
+        
+        return section;
+    }
+
+    /**
+     * 項目管理セクションを作成
+     * @returns {HTMLElement} - 項目管理セクション要素
+     */
+    createItemManagementSection() {
+        const section = document.createElement('section');
+        section.className = 'item-management-section';
+        
+        const header = document.createElement('div');
+        header.className = 'item-management-header';
+        
+        const title = document.createElement('h4');
+        title.textContent = '評価項目の管理';
+        header.appendChild(title);
+        
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn--outline btn--sm';
+        toggleBtn.textContent = '▼ 項目を編集';
+        toggleBtn.id = 'toggleItemManagement';
+        header.appendChild(toggleBtn);
+        
+        section.appendChild(header);
+        
+        const managementArea = document.createElement('div');
+        managementArea.className = 'item-management-area hidden';
+        managementArea.id = 'itemManagementArea';
+        
+        const itemsList = document.createElement('div');
+        itemsList.className = 'items-list-inline';
+        
+        this.app.evaluationItems.forEach((item, index) => {
+            const itemCard = document.createElement('div');
+            itemCard.className = 'item-card';
+            
+            const itemText = document.createElement('span');
+            itemText.className = 'item-card-text';
+            itemText.textContent = item;
+            itemCard.appendChild(itemText);
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'item-card-actions';
+            
+            const editBtn = document.createElement('button');
+            editBtn.className = 'item-action-btn edit-btn';
+            editBtn.textContent = '✏️';
+            editBtn.title = '編集';
+            editBtn.onclick = () => this.app.editItem(index);
+            actionsDiv.appendChild(editBtn);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'item-action-btn delete-btn';
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.title = '削除';
+            deleteBtn.onclick = () => this.app.removeItem(index);
+            actionsDiv.appendChild(deleteBtn);
+            
+            itemCard.appendChild(actionsDiv);
+            itemsList.appendChild(itemCard);
+        });
+        
+        managementArea.appendChild(itemsList);
+        
+        const addForm = document.createElement('div');
+        addForm.className = 'add-item-form-inline';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'newItemInputInline';
+        input.className = 'form-control';
+        input.placeholder = '新しい項目を追加';
+        addForm.appendChild(input);
+        
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn btn--primary btn--sm';
+        addBtn.textContent = '追加';
+        addBtn.onclick = () => this.app.addItemInline();
+        addForm.appendChild(addBtn);
+        
+        managementArea.appendChild(addForm);
+        section.appendChild(managementArea);
+        
+        // トグルボタンのイベントリスナー
+        toggleBtn.addEventListener('click', () => {
+            managementArea.classList.toggle('hidden');
+            if (managementArea.classList.contains('hidden')) {
+                toggleBtn.textContent = '▼ 項目を編集';
+            } else {
+                toggleBtn.textContent = '▲ 項目を閉じる';
+            }
+        });
         
         return section;
     }
@@ -482,7 +579,7 @@ class UIRenderer {
         return `
             <div class="reflections-section">
                 <h4>感想・気づき</h4>
-                <div class="reflections-grid">${reflections}</div>
+                <div class="reflections-list">${reflections}</div>
             </div>
         `;
     }

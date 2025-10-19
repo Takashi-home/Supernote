@@ -603,18 +603,93 @@ class DiaryApp {
             this.lastUsedItems = [...this.evaluationItems];
             input.value = '';
             this.uiRenderer.renderSettings();
-            this.initializeWeekData();
+            this._updateWeekDataWithNewItems();
             this.uiRenderer.renderDiary();
+            this.markAsChanged();
+        }
+    }
+
+    addItemInline() {
+        const input = document.getElementById('newItemInputInline');
+        const newItem = input.value.trim();
+
+        if (newItem && !this.evaluationItems.includes(newItem)) {
+            this.evaluationItems.push(newItem);
+            // lastUsedItemsを更新
+            this.lastUsedItems = [...this.evaluationItems];
+            input.value = '';
+            this._updateWeekDataWithNewItems();
+            this.uiRenderer.renderDiary();
+            this.markAsChanged();
+        }
+    }
+
+    editItem(index) {
+        const currentItem = this.evaluationItems[index];
+        const newItem = prompt('項目を編集してください:', currentItem);
+        
+        if (newItem && newItem.trim() !== '' && newItem.trim() !== currentItem) {
+            const trimmedNewItem = newItem.trim();
+            
+            // 重複チェック（自分以外）
+            const isDuplicate = this.evaluationItems.some((item, i) => 
+                i !== index && item === trimmedNewItem
+            );
+            
+            if (isDuplicate) {
+                alert('この項目は既に存在します。');
+                return;
+            }
+            
+            // weekDataの全レコードで項目名を更新
+            this.weekData.dailyRecords.forEach(record => {
+                if (record.responses[currentItem] !== undefined) {
+                    record.responses[trimmedNewItem] = record.responses[currentItem];
+                    delete record.responses[currentItem];
+                }
+            });
+            
+            this.evaluationItems[index] = trimmedNewItem;
+            this.lastUsedItems = [...this.evaluationItems];
+            this._updateWeekDataWithNewItems();
+            this.uiRenderer.renderDiary();
+            this.markAsChanged();
         }
     }
 
     removeItem(index) {
-        this.evaluationItems.splice(index, 1);
-        // lastUsedItemsを更新
-        this.lastUsedItems = [...this.evaluationItems];
-        this.uiRenderer.renderSettings();
-        this.initializeWeekData();
-        this.uiRenderer.renderDiary();
+        if (confirm('この項目を削除しますか？関連するすべてのデータも削除されます。')) {
+            const removedItem = this.evaluationItems[index];
+            
+            // weekDataから該当項目を削除
+            this.weekData.dailyRecords.forEach(record => {
+                delete record.responses[removedItem];
+            });
+            
+            this.evaluationItems.splice(index, 1);
+            // lastUsedItemsを更新
+            this.lastUsedItems = [...this.evaluationItems];
+            this._updateWeekDataWithNewItems();
+            this.uiRenderer.renderDiary();
+            this.markAsChanged();
+        }
+    }
+
+    /**
+     * 新しい項目でweekDataを更新
+     * @private
+     */
+    _updateWeekDataWithNewItems() {
+        this.weekData.evaluationItems = [...this.evaluationItems];
+        
+        // 既存のレコードに新しい項目を追加（値は空）
+        this.weekData.dailyRecords.forEach(record => {
+            this.evaluationItems.forEach(item => {
+                if (record.responses[item] === undefined) {
+                    record.responses[item] = '';
+                }
+            });
+        });
     }
 
     resetToDefaults() {
