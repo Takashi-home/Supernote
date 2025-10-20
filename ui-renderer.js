@@ -325,6 +325,9 @@ class UIRenderer {
                 ${this._createAddItemFormHTML()}
             </div>
             ${this._createReflectionFieldHTML(record, dayIndex)}
+            <button class="btn btn--primary daily-entry-submit-btn" onclick="diaryApp.showDailySubmitModal(${dayIndex})">
+                📤 この日を提出
+            </button>
         `;
         
         this._attachEvaluationListeners(dayEntry, dayIndex);
