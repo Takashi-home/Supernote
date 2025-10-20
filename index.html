@@ -121,6 +121,42 @@
         </div>
     </div>
 
+    <!-- 1日提出モーダル -->
+    <div id="dailySubmitModal" class="daily-submit-modal hidden">
+        <div class="daily-submit-content">
+            <div class="daily-submit-header">
+                <h3>📤 この日を提出</h3>
+                <button class="close-btn" onclick="diaryApp.hideDailySubmitModal()">×</button>
+            </div>
+
+            <div class="daily-submit-info">
+                <p id="dailySubmitDate">選択中: 10/15 (火)</p>
+            </div>
+
+            <div class="daily-submit-actions">
+                <button class="btn btn--primary btn--full-width" onclick="diaryApp.exportDailyAsImage()">
+                    📷 画像として保存
+                </button>
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.copyDailyImageToClipboard()">
+                    📋 画像をコピー
+                </button>
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.copyDailyEvaluationTable()">
+                    📋 評価表をコピー (TSV)
+                </button>
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.copyDailyReflection()">
+                    📋 感想をコピー (TSV)
+                </button>
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.printDaily()">
+                    🖨️ 印刷
+                </button>
+            </div>
+
+            <div class="daily-submit-footer">
+                <button class="btn btn--secondary btn--full-width" onclick="diaryApp.hideDailySubmitModal()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
