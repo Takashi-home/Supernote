@@ -331,7 +331,7 @@ class DiaryApp {
         this.updateWeekDisplay();
         this.weekData = null;
         this.initializeWeekData();
-        this.uiRenderer.renderDiary();
+        this._renderCurrentView();
     }
 
     // ==================== データ管理 ====================
@@ -483,6 +483,18 @@ class DiaryApp {
         document.getElementById('previewView').classList.remove('hidden');
         this.updateNavigationButtons();
         this.uiRenderer.renderPreview();
+    }
+
+    /**
+     * 現在のビューを再描画
+     * @private
+     */
+    _renderCurrentView() {
+        if (this.currentView === 'preview') {
+            this.uiRenderer.renderPreview();
+        } else {
+            this.uiRenderer.renderDiary();
+        }
     }
 
     showSettings() {
@@ -991,7 +1003,7 @@ class DiaryApp {
                 this.weekData = data;
                 // データから評価項目を読み込む
                 this.loadEvaluationItems(data);
-                this.uiRenderer.renderDiary();
+                this._renderCurrentView();
                 this.uiRenderer.showSyncStatus('✅ 同期完了', 'success');
                 this.hasUnsavedChanges = false;
                 this.updateSaveButtonState();
@@ -999,6 +1011,7 @@ class DiaryApp {
                 this.weekData = null;
                 // 新規週の場合、前回使用した項目またはデフォルトを使用
                 this.initializeWeekData();
+                this._renderCurrentView();
                 this.uiRenderer.showSyncStatus('ℹ️ 新規週', 'loading');
                 this.hasUnsavedChanges = false;
                 this.updateSaveButtonState();
