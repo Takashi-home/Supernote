@@ -1268,6 +1268,11 @@ class DiaryApp {
      * @private
      */
     async _printWeekly() {
+        // プレビュー画面に切り替え
+        this.showPreview();
+        await this._waitForRender();
+        
+        // 印刷
         window.print();
     }
 
