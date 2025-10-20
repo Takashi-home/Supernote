@@ -1262,8 +1262,8 @@ select.form-control {
 }
 
 .export-mode .parents-comment-preview {
-    background: #ffffff;
-    border: 2px solid #000000;
+    background: #ffffff !important;
+    border: 2px solid #000000 !important;
 }
 
 .reflections-section h4 {
