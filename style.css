@@ -1231,6 +1231,27 @@ select.form-control {
     max-width: 180px;
 }
 
+/* Export mode: Ensure preview content doesn't have extra whitespace */
+.export-mode #previewContent {
+    display: inline-block;
+    max-width: fit-content;
+}
+
+/* Export mode: Make reflections section match table width */
+.export-mode .reflections-section {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Export mode: Ensure reflection text wraps properly */
+.export-mode .reflection-text {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
+}
+
 .settings-modal {
     position: fixed;
     top: 0;
