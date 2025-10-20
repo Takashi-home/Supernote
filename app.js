@@ -1170,6 +1170,11 @@ class DiaryApp {
             tsvLines.push([formattedDate, reflection].join('\t'));
         });
         
+        // 親からのコメントを追加
+        if (this.weekData.parentsComment && this.weekData.parentsComment.trim() !== '') {
+            tsvLines.push(['親からのコメント', this.weekData.parentsComment].join('\t'));
+        }
+        
         return tsvLines.join('\n');
     }
 

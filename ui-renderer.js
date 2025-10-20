@@ -591,6 +591,7 @@ class UIRenderer {
             ${this._createPreviewHeader()}
             ${this._createPreviewTable()}
             ${this._createReflectionsSection()}
+            ${this._createParentsCommentSection()}
         `;
     }
 
@@ -706,6 +707,32 @@ class UIRenderer {
             <div class="reflections-section">
                 <h4>感想・気づき</h4>
                 <div class="reflections-list">${reflections}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * 親からのコメントセクションを作成（プレビュー用）
+     * @returns {string}
+     * @private
+     */
+    _createParentsCommentSection() {
+        const parentsComment = this.app.weekData.parentsComment || '';
+        
+        // コメントが空の場合は表示しない
+        if (!parentsComment.trim()) {
+            return '';
+        }
+        
+        return `
+            <div class="reflections-section parents-comment-preview">
+                <h4>親からのコメント</h4>
+                <div class="reflections-list">
+                    <div class="reflection-item">
+                        <div class="reflection-date">親より</div>
+                        <div class="reflection-text">${this.escapeHtml(parentsComment)}</div>
+                    </div>
+                </div>
             </div>
         `;
     }
