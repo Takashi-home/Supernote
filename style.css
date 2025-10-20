@@ -1253,6 +1253,19 @@ select.form-control {
     background: var(--color-bg-5);
 }
 
+/* Print/Export mode: 親からのコメント欄の視認性向上 */
+@media print {
+    .parents-comment-preview {
+        background: #ffffff !important;
+        border: 2px solid #000000 !important;
+    }
+}
+
+.export-mode .parents-comment-preview {
+    background: #ffffff;
+    border: 2px solid #000000;
+}
+
 .reflections-section h4 {
     margin-bottom: var(--space-12);
     margin-top: 0;
