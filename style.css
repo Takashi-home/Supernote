@@ -1221,6 +1221,124 @@ select.form-control {
     flex: 1;
 }
 
+/* プレビュー編集モード */
+.preview-edit-controls,
+.preview-view-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-16);
+    padding: var(--space-12);
+    background: var(--color-bg-1);
+    border-radius: var(--radius-base);
+    border: 1px solid var(--color-border);
+}
+
+.preview-view-controls {
+    justify-content: flex-end;
+}
+
+.edit-mode-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    font-size: var(--font-size-base);
+}
+
+.edit-mode-actions {
+    display: flex;
+    gap: var(--space-8);
+}
+
+.editable-eval-cell {
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
+    position: relative;
+}
+
+.editable-eval-cell:hover {
+    background: var(--color-bg-2);
+}
+
+.editable-eval-cell:hover::after {
+    content: '✏️';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+.editable-item-cell {
+    position: relative;
+}
+
+.item-cell-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    justify-content: space-between;
+}
+
+.item-name[contenteditable="true"] {
+    flex: 1;
+    padding: var(--space-4);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.item-name[contenteditable="true"]:hover {
+    background: var(--color-bg-2);
+}
+
+.item-name[contenteditable="true"]:focus {
+    background: var(--color-surface);
+    border: 1px solid var(--color-primary);
+    padding: var(--space-4);
+}
+
+.btn-delete-item {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    padding: var(--space-2);
+    opacity: 0.6;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.btn-delete-item:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.add-item-row {
+    background: var(--color-bg-3);
+}
+
+.add-item-cell {
+    padding: var(--space-12) !important;
+}
+
+.add-item-form-table {
+    display: flex;
+    gap: var(--space-8);
+    align-items: center;
+}
+
+.add-item-form-table .form-control {
+    flex: 1;
+    margin: 0;
+}
+
+.form-control-table {
+    padding: var(--space-6) var(--space-10);
+    font-size: var(--font-size-sm);
+}
+
 .export-mode .preview-table {
     width: auto;
     table-layout: auto;

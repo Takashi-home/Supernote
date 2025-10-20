@@ -480,9 +480,42 @@ class UIRenderer {
         const container = document.getElementById('previewContent');
         container.innerHTML = `
             ${this._createPreviewHeader()}
+            ${this._createPreviewEditModeControls()}
             ${this._createPreviewTable()}
             ${this._createReflectionsSection()}
         `;
+        
+        // 編集モードの場合、イベントリスナーを設定
+        if (this.app.previewEditMode) {
+            this._attachPreviewEditListeners();
+        }
+    }
+
+    /**
+     * プレビュー編集モードコントロールを作成
+     * @returns {string}
+     * @private
+     */
+    _createPreviewEditModeControls() {
+        if (this.app.previewEditMode) {
+            return `
+                <div class="preview-edit-controls">
+                    <div class="edit-mode-indicator">
+                        <span>✏️ 編集モード</span>
+                    </div>
+                    <div class="edit-mode-actions">
+                        <button class="btn btn--primary btn--sm" onclick="diaryApp.applyPreviewEdits()">✓ 変更を適用</button>
+                        <button class="btn btn--outline btn--sm" onclick="diaryApp.cancelPreviewEdits()">✕ キャンセル</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="preview-view-controls">
+                    <button class="btn btn--outline btn--sm" onclick="diaryApp.togglePreviewEditMode()">✏️ 表を編集</button>
+                </div>
+            `;
+        }
     }
 
     /**
@@ -538,32 +571,174 @@ class UIRenderer {
      * @private
      */
     _createTableBody() {
-        return this.app.evaluationItems
-            .map(item => this._createTableRow(item))
+        const rows = this.app.evaluationItems
+            .map((item, index) => this._createTableRow(item, index))
             .join('');
+        
+        // 編集モードの場合、新規行追加ボタンを表示
+        if (this.app.previewEditMode) {
+            return rows + this._createAddItemRow();
+        }
+        
+        return rows;
+    }
+
+    /**
+     * 新規項目追加行を作成
+     * @returns {string}
+     * @private
+     */
+    _createAddItemRow() {
+        return `
+            <tr class="add-item-row">
+                <td colspan="8" class="add-item-cell">
+                    <div class="add-item-form-table">
+                        <input type="text" 
+                               id="newItemInputTable" 
+                               class="form-control form-control-table" 
+                               placeholder="新しい評価項目を追加">
+                        <button class="btn btn--primary btn--sm" onclick="diaryApp.uiRenderer.addItemFromTable()">
+                            ＋ 項目を追加
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    /**
+     * テーブルから新規項目を追加
+     */
+    addItemFromTable() {
+        const input = document.getElementById('newItemInputTable');
+        const newItem = input.value.trim();
+        
+        if (newItem && !this.app.evaluationItems.includes(newItem)) {
+            this.app.evaluationItems.push(newItem);
+            this.app.lastUsedItems = [...this.app.evaluationItems];
+            this.app._updateWeekDataWithNewItems();
+            this.renderPreview();
+            this.app.markAsChanged();
+        } else if (this.app.evaluationItems.includes(newItem)) {
+            this.showStatusMessage('この項目は既に存在します', 'error');
+        }
     }
 
     /**
      * テーブル行を作成
      * @param {string} item - 評価項目
+     * @param {number} itemIndex - 項目のインデックス
      * @returns {string}
      * @private
      */
-    _createTableRow(item) {
+    _createTableRow(item, itemIndex) {
         const displayText = item.length > UI_CONSTANTS.ITEM_TEXT_MAX_LENGTH 
             ? item.substring(0, UI_CONSTANTS.ITEM_TEXT_MAX_LENGTH) + '...' 
             : item;
         
+        let itemCell;
+        if (this.app.previewEditMode) {
+            // 編集モード: 項目名を編集可能に
+            itemCell = `
+                <td class="item-cell editable-item-cell" title="${this.escapeHtml(item)}">
+                    <div class="item-cell-content">
+                        <span class="item-name" 
+                              contenteditable="true" 
+                              data-item-index="${itemIndex}"
+                              data-original-value="${this.escapeHtml(item)}">${this.escapeHtml(displayText)}</span>
+                        <button class="btn-delete-item" 
+                                onclick="diaryApp.uiRenderer.deleteItemFromTable(${itemIndex})"
+                                title="この項目を削除">
+                            🗑️
+                        </button>
+                    </div>
+                </td>
+            `;
+        } else {
+            // 表示モード: 通常表示
+            itemCell = `
+                <td class="item-cell" title="${this.escapeHtml(item)}">${this.escapeHtml(displayText)}</td>
+            `;
+        }
+        
         const cells = this.app.weekData.dailyRecords
-            .map(record => `<td class="eval-cell">${record.responses[item] || '-'}</td>`)
+            .map((record, dayIndex) => this._createTableCell(record, item, dayIndex))
             .join('');
         
-        return `
-            <tr>
-                <td class="item-cell" title="${this.escapeHtml(item)}">${this.escapeHtml(displayText)}</td>
-                ${cells}
-            </tr>
-        `;
+        return `<tr>${itemCell}${cells}</tr>`;
+    }
+
+    /**
+     * テーブルセルを作成
+     * @param {Object} record - 日別レコード
+     * @param {string} item - 評価項目
+     * @param {number} dayIndex - 日のインデックス
+     * @returns {string}
+     * @private
+     */
+    _createTableCell(record, item, dayIndex) {
+        const value = record.responses[item] || '-';
+        
+        if (this.app.previewEditMode) {
+            // 編集モード: セルをクリック可能に
+            return `
+                <td class="eval-cell editable-eval-cell" 
+                    data-day="${dayIndex}" 
+                    data-item="${this.escapeHtml(item)}"
+                    onclick="diaryApp.uiRenderer.cycleEvaluation(${dayIndex}, '${this.escapeHtml(item)}')"
+                    title="クリックして変更">
+                    ${value}
+                </td>
+            `;
+        } else {
+            // 表示モード: 通常表示
+            return `<td class="eval-cell">${value}</td>`;
+        }
+    }
+
+    /**
+     * テーブルから項目を削除
+     * @param {number} itemIndex - 項目のインデックス
+     */
+    deleteItemFromTable(itemIndex) {
+        if (confirm('この項目を削除しますか？関連するすべてのデータも削除されます。')) {
+            const removedItem = this.app.evaluationItems[itemIndex];
+            
+            // weekDataから該当項目を削除
+            this.app.weekData.dailyRecords.forEach(record => {
+                delete record.responses[removedItem];
+            });
+            
+            this.app.evaluationItems.splice(itemIndex, 1);
+            this.app.lastUsedItems = [...this.app.evaluationItems];
+            this.app._updateWeekDataWithNewItems();
+            this.renderPreview();
+            this.app.markAsChanged();
+        }
+    }
+
+    /**
+     * 評価値を循環的に変更（- → ⭕️ → ✖️ → △ → -）
+     * @param {number} dayIndex - 日のインデックス
+     * @param {string} item - 評価項目
+     */
+    cycleEvaluation(dayIndex, item) {
+        const currentValue = this.app.weekData.dailyRecords[dayIndex].responses[item];
+        const values = ['', '⭕️', '✖️', '△'];
+        const currentIndex = values.indexOf(currentValue);
+        const nextIndex = (currentIndex + 1) % values.length;
+        const nextValue = values[nextIndex];
+        
+        this.app.weekData.dailyRecords[dayIndex].responses[item] = nextValue;
+        this.app.markAsChanged();
+        
+        // セルの内容を更新
+        const cell = document.querySelector(
+            `td.eval-cell[data-day="${dayIndex}"][data-item="${this.escapeHtml(item)}"]`
+        );
+        if (cell) {
+            cell.textContent = nextValue || '-';
+        }
     }
 
     /**
@@ -582,6 +757,74 @@ class UIRenderer {
                 <div class="reflections-list">${reflections}</div>
             </div>
         `;
+    }
+
+    /**
+     * プレビュー編集モードのイベントリスナーを追加
+     * @private
+     */
+    _attachPreviewEditListeners() {
+        // 項目名の編集イベント
+        document.querySelectorAll('.item-name[contenteditable="true"]').forEach(element => {
+            element.addEventListener('blur', (e) => {
+                this._handleItemNameEdit(e);
+            });
+            
+            // Enterキーで確定
+            element.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            });
+        });
+    }
+
+    /**
+     * 項目名の編集を処理
+     * @param {Event} e - イベント
+     * @private
+     */
+    _handleItemNameEdit(e) {
+        const element = e.target;
+        const itemIndex = parseInt(element.dataset.itemIndex);
+        const originalValue = element.dataset.originalValue;
+        const newValue = element.textContent.trim();
+        
+        if (newValue && newValue !== originalValue) {
+            // 重複チェック
+            const isDuplicate = this.app.evaluationItems.some((item, i) => 
+                i !== itemIndex && item === newValue
+            );
+            
+            if (isDuplicate) {
+                this.showStatusMessage('この項目は既に存在します', 'error');
+                element.textContent = originalValue;
+                return;
+            }
+            
+            // 項目名を更新
+            const oldItem = this.app.evaluationItems[itemIndex];
+            this.app.evaluationItems[itemIndex] = newValue;
+            
+            // weekDataの全レコードで項目名を更新
+            this.app.weekData.dailyRecords.forEach(record => {
+                if (record.responses[oldItem] !== undefined) {
+                    record.responses[newValue] = record.responses[oldItem];
+                    delete record.responses[oldItem];
+                }
+            });
+            
+            this.app.lastUsedItems = [...this.app.evaluationItems];
+            this.app._updateWeekDataWithNewItems();
+            this.app.markAsChanged();
+            
+            // 表示を更新
+            this.renderPreview();
+        } else if (!newValue) {
+            // 空の場合は元に戻す
+            element.textContent = originalValue;
+        }
     }
 
     /**
