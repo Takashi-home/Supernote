@@ -1139,13 +1139,17 @@ class DiaryApp {
      */
     async submitPrint() {
         try {
+            // モーダルを先に閉じる（印刷に含まれないように）
+            this.hideSubmitModal();
+            
+            // 少し待ってからモーダルが確実に閉じるのを待つ
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             if (this.submitMode === 'daily') {
                 await this._printDaily();
             } else {
                 await this._printWeekly();
             }
-            
-            this.hideSubmitModal();
             
         } catch (error) {
             console.error('Print error:', error);
