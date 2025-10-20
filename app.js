@@ -47,7 +47,6 @@ class DiaryApp {
         this.lastSavedData = null; // 最後に保存したデータのスナップショット
         this.debugMode = false; // デバッグモード（デフォルトOFF）
         this.showParentsComment = false; // 親コメント欄の表示状態
-        this.previewEditMode = false; // プレビュー画面の編集モード
         
         // 同期設定
         this.syncSettings = {
@@ -484,34 +483,6 @@ class DiaryApp {
         document.getElementById('previewView').classList.remove('hidden');
         this.updateNavigationButtons();
         this.uiRenderer.renderPreview();
-    }
-
-    /**
-     * プレビュー編集モードを切り替え
-     */
-    togglePreviewEditMode() {
-        this.previewEditMode = !this.previewEditMode;
-        this.uiRenderer.renderPreview();
-    }
-
-    /**
-     * プレビュー編集モードでの変更を適用
-     */
-    applyPreviewEdits() {
-        this.previewEditMode = false;
-        this.markAsChanged();
-        this.uiRenderer.renderPreview();
-        this.uiRenderer.showStatusMessage('✅ 変更を適用しました', 'success');
-    }
-
-    /**
-     * プレビュー編集モードでの変更をキャンセル
-     */
-    cancelPreviewEdits() {
-        // データを再読み込みして変更を破棄
-        this.loadData();
-        this.previewEditMode = false;
-        this.uiRenderer.showStatusMessage('❌ 変更をキャンセルしました', 'info');
     }
 
     showSettings() {
