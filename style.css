@@ -1248,6 +1248,38 @@ select.form-control {
     border: 1px solid var(--color-card-border);
 }
 
+/* 親からのコメントプレビュー（少し異なる背景色） */
+.parents-comment-preview {
+    background: var(--color-bg-5);
+}
+
+/* Print/Export mode: 親からのコメント欄の視認性向上 */
+@media print {
+    .parents-comment-preview {
+        background: #ffffff !important;
+        border: 2px solid #000000 !important;
+    }
+    
+    .parents-comment-preview .reflection-text,
+    .parents-comment-preview .reflection-date {
+        color: #000000 !important;
+    }
+}
+
+.export-mode .parents-comment-preview {
+    background: #ffffff !important;
+    border: 2px solid #000000 !important;
+}
+
+/* Export mode: 親からのコメントのテキスト色を黒に */
+.export-mode .parents-comment-preview .reflection-text {
+    color: #000000 !important;
+}
+
+.export-mode .parents-comment-preview .reflection-date {
+    color: #000000 !important;
+}
+
 .reflections-section h4 {
     margin-bottom: var(--space-12);
     margin-top: 0;
