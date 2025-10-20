@@ -322,14 +322,115 @@ class UIRenderer {
             <h4>${formattedDate} (${record.dayOfWeek})</h4>
             <div class="evaluation-grid">
                 ${this._createEvaluationItemsHTML(record, dayIndex)}
+                ${this._createAddItemFormHTML()}
             </div>
             ${this._createReflectionFieldHTML(record, dayIndex)}
         `;
         
         this._attachEvaluationListeners(dayEntry, dayIndex);
         this._attachReflectionListener(dayEntry);
+        this._attachItemNameEditListeners(dayEntry);
+        this._attachAddItemListener(dayEntry);
         
         return dayEntry;
+    }
+    
+    /**
+     * 項目追加フォームのHTMLを作成
+     * @returns {string}
+     * @private
+     */
+    _createAddItemFormHTML() {
+        return `
+            <div class="evaluation-item add-item-form-eval">
+                <div class="add-item-form-inline-eval">
+                    <input type="text" 
+                           id="newItemInputEval" 
+                           class="form-control form-control-inline"
+                           placeholder="新しい項目を追加">
+                    <button class="btn btn--primary btn--sm" 
+                            id="addItemBtnEval">
+                        ＋ 追加
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * 項目名の編集リスナーをアタッチ
+     * @param {HTMLElement} dayEntry - 日記エントリー要素
+     * @private
+     */
+    _attachItemNameEditListeners(dayEntry) {
+        const labels = dayEntry.querySelectorAll('.evaluation-item-label[contenteditable="true"]');
+        labels.forEach(label => {
+            // フォーカス時に元の値を保存
+            label.addEventListener('focus', (e) => {
+                e.target.dataset.editingValue = e.target.textContent;
+            });
+            
+            // Enterキーで編集を確定
+            label.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            });
+            
+            // ブラー時に変更を保存
+            label.addEventListener('blur', (e) => {
+                const newValue = e.target.textContent.trim();
+                const itemIndex = parseInt(e.target.dataset.itemIndex);
+                const originalValue = e.target.dataset.originalValue;
+                
+                if (newValue === '') {
+                    // 空の場合は元に戻す
+                    e.target.textContent = originalValue;
+                    this.showStatusMessage('項目名を空にすることはできません', 'error');
+                    return;
+                }
+                
+                if (newValue !== originalValue) {
+                    // 項目名を更新
+                    this.app.updateItemName(itemIndex, newValue);
+                }
+            });
+        });
+    }
+    
+    /**
+     * 項目追加フォームのリスナーをアタッチ
+     * @param {HTMLElement} dayEntry - 日記エントリー要素
+     * @private
+     */
+    _attachAddItemListener(dayEntry) {
+        const addBtn = dayEntry.querySelector('#addItemBtnEval');
+        const input = dayEntry.querySelector('#newItemInputEval');
+        
+        if (addBtn && input) {
+            const addItem = () => {
+                const newItem = input.value.trim();
+                if (newItem && !this.app.evaluationItems.includes(newItem)) {
+                    this.app.evaluationItems.push(newItem);
+                    this.app.lastUsedItems = [...this.app.evaluationItems];
+                    this.app._updateWeekDataWithNewItems();
+                    this.renderDiary();
+                    this.app.markAsChanged();
+                    this.showStatusMessage('項目を追加しました', 'success');
+                } else if (this.app.evaluationItems.includes(newItem)) {
+                    this.showStatusMessage('この項目は既に存在します', 'error');
+                }
+            };
+            
+            addBtn.addEventListener('click', addItem);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addItem();
+                }
+            });
+        }
     }
 
     /**
@@ -362,7 +463,15 @@ class UIRenderer {
         
         return `
             <div class="evaluation-item" data-item="${this.escapeHtml(item)}" data-day="${dayIndex}">
-                <label>${this.escapeHtml(item)}</label>
+                <div class="evaluation-item-header">
+                    <label class="evaluation-item-label" 
+                           contenteditable="true" 
+                           data-item-index="${itemIndex}"
+                           data-original-value="${this.escapeHtml(item)}">${this.escapeHtml(item)}</label>
+                    <button class="btn-delete-eval-item" 
+                            onclick="diaryApp.removeItemFromEval(${itemIndex})"
+                            title="この項目を削除">🗑️</button>
+                </div>
                 <div class="rating-group">${radioButtons}</div>
             </div>
         `;
