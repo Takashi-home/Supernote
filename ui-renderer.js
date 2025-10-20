@@ -89,6 +89,19 @@ class UIRenderer {
     }
 
     /**
+     * 週間サマリーを更新（リアルタイム更新用）
+     */
+    updateWeekSummary() {
+        const summarySection = document.querySelector('.week-summary-section .week-summary');
+        if (summarySection) {
+            const grid = summarySection.querySelector('.week-summary-grid');
+            if (grid) {
+                grid.innerHTML = this._generateWeekSummaryHTML();
+            }
+        }
+    }
+
+    /**
      * 週間サマリーのHTMLを生成
      * @returns {string}
      * @private
