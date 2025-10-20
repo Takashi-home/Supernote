@@ -1394,7 +1394,8 @@ class DiaryApp {
         
         // 各評価項目の行
         this.evaluationItems.forEach(item => {
-            tsvLines.push([item, record.responses[item] || '-'].join('\t'));
+            const value = record.responses[item] || '-';
+            tsvLines.push([this._sanitizeTSVCell(item), this._sanitizeTSVCell(value)].join('\t'));
         });
         
         return tsvLines.join('\n');
@@ -1417,7 +1418,7 @@ class DiaryApp {
         tsvLines.push(['日付', '感想・気づき'].join('\t'));
         
         // 感想
-        const reflection = record.reflection || '';
+        const reflection = this._sanitizeTSVCell(record.reflection || '');
         tsvLines.push([formattedDate, reflection].join('\t'));
         
         return tsvLines.join('\n');
@@ -1516,6 +1517,20 @@ class DiaryApp {
     }
 
     /**
+     * TSVセルの値から改行を除去してSlack互換にする
+     * @param {string} value - セルの値
+     * @returns {string} - 改行を除去した値
+     * @private
+     */
+    _sanitizeTSVCell(value) {
+        if (typeof value !== 'string') {
+            return value;
+        }
+        // 改行(\n, \r\n, \r)をスペースに置換
+        return value.replace(/\r\n|\r|\n/g, ' ');
+    }
+
+    /**
      * 評価表のTSVテキストを生成
      * @returns {string} - TSV形式のテキスト
      * @private
@@ -1540,9 +1555,10 @@ class DiaryApp {
         
         // 各評価項目の行
         this.evaluationItems.forEach(item => {
-            const row = [item];
+            const row = [this._sanitizeTSVCell(item)];
             this.weekData.dailyRecords.forEach(record => {
-                row.push(record.responses[item] || '-');
+                const value = record.responses[item] || '-';
+                row.push(this._sanitizeTSVCell(value));
             });
             tsvLines.push(row.join('\t'));
         });
@@ -1580,13 +1596,14 @@ class DiaryApp {
         this.weekData.dailyRecords.forEach(record => {
             const date = new Date(record.date);
             const formattedDate = `${date.getMonth() + 1}/${date.getDate()}(${record.dayOfWeek})`;
-            const reflection = record.reflection || '';
+            const reflection = this._sanitizeTSVCell(record.reflection || '');
             tsvLines.push([formattedDate, reflection].join('\t'));
         });
         
         // 親からのコメントを追加
         if (this.weekData.parentsComment && this.weekData.parentsComment.trim() !== '') {
-            tsvLines.push(['親からのコメント', this.weekData.parentsComment].join('\t'));
+            const sanitizedComment = this._sanitizeTSVCell(this.weekData.parentsComment);
+            tsvLines.push(['親からのコメント', sanitizedComment].join('\t'));
         }
         
         return tsvLines.join('\n');
