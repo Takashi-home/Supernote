@@ -1221,6 +1221,19 @@ select.form-control {
     flex: 1;
 }
 
+/* Export mode styling */
+.export-mode {
+    display: inline-block;
+    max-width: fit-content;
+}
+
+.export-mode .preview-header,
+.export-mode .preview-table-wrapper,
+.export-mode .reflections-section {
+    width: fit-content;
+    max-width: fit-content;
+}
+
 .export-mode .preview-table {
     width: auto;
     table-layout: auto;
@@ -1231,17 +1244,12 @@ select.form-control {
     max-width: 180px;
 }
 
-/* Export mode: Ensure preview content doesn't have extra whitespace */
-.export-mode #previewContent {
-    display: inline-block;
-    max-width: fit-content;
-}
-
-/* Export mode: Make reflections section match table width */
-.export-mode .reflections-section {
+/* Export mode: Ensure reflection items match table width */
+.export-mode .reflection-item {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-12);
     width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
 }
 
 /* Export mode: Ensure reflection text wraps properly */
@@ -1249,7 +1257,8 @@ select.form-control {
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    max-width: 100%;
+    flex: 1;
+    min-width: 0;
 }
 
 .settings-modal {
