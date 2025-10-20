@@ -594,6 +594,7 @@ class DiaryApp {
         this.debugLog(`setEvaluation: day=${dayIndex}, value=${value}`);
         this.weekData.dailyRecords[dayIndex].responses[item] = value;
         this.markAsChanged(); // 変更を検知
+        this.uiRenderer.updateWeekSummary(); // 週間サマリーをリアルタイム更新
     }
 
     setReflection(dayIndex, value) {
