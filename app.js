@@ -40,7 +40,7 @@ class DiaryApp {
         // 現在の週
         this.currentWeek = this.getCurrentWeek();
         this.currentView = 'diary';
-        this.currentDayIndex = APP_CONSTANTS.FIRST_DAY_INDEX;
+        this.currentDayIndex = this.getTodayDayIndex();
         this.weekData = null;
         this.autoSaveTimer = null; // 自動保存用タイマー
         this.hasUnsavedChanges = false; // 未保存の変更があるか
@@ -160,6 +160,23 @@ class DiaryApp {
     }
 
     // ==================== 週管理 ====================
+
+    /**
+     * 今日の曜日インデックスを取得（月曜日=0, 火曜日=1, ..., 日曜日=6）
+     * @returns {number} - 今日の曜日インデックス
+     */
+    getTodayDayIndex() {
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0=日曜, 1=月曜, ..., 6=土曜
+        
+        // JavaScript の getDay() は日曜日が0だが、アプリでは月曜日を0としている
+        // 月曜日=0, 火曜日=1, ..., 日曜日=6 に変換
+        if (dayOfWeek === APP_CONSTANTS.SUNDAY_INDEX) {
+            return APP_CONSTANTS.LAST_DAY_INDEX; // 日曜日は最後（6）
+        } else {
+            return dayOfWeek - 1; // 月曜日=0, 火曜日=1, ..., 土曜日=5
+        }
+    }
 
     /**
      * 曜日から月曜日へのオフセットを計算
