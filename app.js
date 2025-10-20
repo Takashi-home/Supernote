@@ -1012,51 +1012,58 @@ class DiaryApp {
     // ==================== 画像出力 ====================
 
     /**
-     * 1日提出モーダルを表示
+     * 提出モーダルを表示（日単位）
      * @param {number} dayIndex - 日のインデックス
      */
     showDailySubmitModal(dayIndex) {
         this.currentDayIndex = dayIndex;
-        const modal = document.getElementById('dailySubmitModal');
+        this.submitMode = 'daily';
+        
         const record = this.weekData.dailyRecords[dayIndex];
         const date = new Date(record.date);
         const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
         
-        document.getElementById('dailySubmitDate').textContent = 
+        document.getElementById('submitModalTitle').textContent = '📤 この日を提出';
+        document.getElementById('submitDate').textContent = 
             `選択中: ${formattedDate} (${record.dayOfWeek})`;
         
-        modal.classList.remove('hidden');
+        document.getElementById('submitModal').classList.remove('hidden');
     }
 
     /**
-     * 1日提出モーダルを非表示
+     * 提出モーダルを表示（週単位）
      */
-    hideDailySubmitModal() {
-        document.getElementById('dailySubmitModal').classList.add('hidden');
+    showWeeklySubmitModal() {
+        this.submitMode = 'weekly';
+        
+        document.getElementById('submitModalTitle').textContent = '📤 週間提出';
+        document.getElementById('submitDate').textContent = 
+            `選択中: ${this.currentWeek}`;
+        
+        document.getElementById('submitModal').classList.remove('hidden');
     }
 
     /**
-     * 1日分の画像を出力
+     * 提出モーダルを非表示
      */
-    async exportDailyAsImage() {
+    hideSubmitModal() {
+        document.getElementById('submitModal').classList.add('hidden');
+    }
+
+    /**
+     * 提出：画像として保存（日単位・週単位共通）
+     */
+    async submitAsImage() {
         this.uiRenderer.showLoading();
         
         try {
-            // プレビュー画面を作成（1日分のみ）
-            const previewElement = this._createDailyPreview(this.currentDayIndex);
-            document.body.appendChild(previewElement);
+            if (this.submitMode === 'daily') {
+                await this._exportDailyAsImage();
+            } else {
+                await this._exportWeeklyAsImage();
+            }
             
-            await this._waitForRender();
-            
-            const canvas = await this._captureElementAsCanvas(previewElement);
-            const record = this.weekData.dailyRecords[this.currentDayIndex];
-            const date = new Date(record.date);
-            const filename = `diary-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}.png`;
-            
-            this._downloadCanvas(canvas, filename);
-            
-            document.body.removeChild(previewElement);
-            this.hideDailySubmitModal();
+            this.hideSubmitModal();
             this.uiRenderer.showStatusMessage('画像がダウンロードされました', 'success');
             
         } catch (error) {
@@ -1068,24 +1075,19 @@ class DiaryApp {
     }
 
     /**
-     * 1日分の画像をクリップボードにコピー
+     * 提出：画像をコピー（日単位・週単位共通）
      */
-    async copyDailyImageToClipboard() {
+    async submitCopyImage() {
         this.uiRenderer.showLoading();
         
         try {
-            const previewElement = this._createDailyPreview(this.currentDayIndex);
-            document.body.appendChild(previewElement);
+            if (this.submitMode === 'daily') {
+                await this._copyDailyImageToClipboard();
+            } else {
+                await this._copyWeeklyImageToClipboard();
+            }
             
-            await this._waitForRender();
-            
-            const canvas = await this._captureElementAsCanvas(previewElement);
-            const blob = await this._canvasToBlob(canvas);
-            
-            await this._copyBlobToClipboard(blob);
-            
-            document.body.removeChild(previewElement);
-            this.hideDailySubmitModal();
+            this.hideSubmitModal();
             this.uiRenderer.showStatusMessage('✅ 画像をクリップボードにコピーしました', 'success');
             
         } catch (error) {
@@ -1097,13 +1099,16 @@ class DiaryApp {
     }
 
     /**
-     * 1日分の評価表をTSV形式でコピー
+     * 提出：評価表をコピー（日単位・週単位共通）
      */
-    async copyDailyEvaluationTable() {
+    async submitCopyEvaluation() {
         try {
-            const tsvText = this._generateDailyEvaluationTableTSV(this.currentDayIndex);
+            const tsvText = this.submitMode === 'daily' 
+                ? this._generateDailyEvaluationTableTSV(this.currentDayIndex)
+                : this._generateEvaluationTableTSV();
+            
             await navigator.clipboard.writeText(tsvText);
-            this.hideDailySubmitModal();
+            this.hideSubmitModal();
             this.uiRenderer.showStatusMessage('✅ 評価表をクリップボードにコピーしました', 'success');
         } catch (error) {
             console.error('Copy error:', error);
@@ -1112,13 +1117,16 @@ class DiaryApp {
     }
 
     /**
-     * 1日分の感想をコピー
+     * 提出：感想をコピー（日単位・週単位共通）
      */
-    async copyDailyReflection() {
+    async submitCopyReflection() {
         try {
-            const tsvText = this._generateDailyReflectionTSV(this.currentDayIndex);
+            const tsvText = this.submitMode === 'daily'
+                ? this._generateDailyReflectionTSV(this.currentDayIndex)
+                : this._generateReflectionTableTSV();
+            
             await navigator.clipboard.writeText(tsvText);
-            this.hideDailySubmitModal();
+            this.hideSubmitModal();
             this.uiRenderer.showStatusMessage('✅ 感想をクリップボードにコピーしました', 'success');
         } catch (error) {
             console.error('Copy error:', error);
@@ -1127,45 +1135,140 @@ class DiaryApp {
     }
 
     /**
-     * 1日分を印刷
+     * 提出：印刷（日単位・週単位共通）
      */
-    async printDaily() {
+    async submitPrint() {
         try {
-            const previewElement = this._createDailyPreview(this.currentDayIndex);
-            previewElement.style.position = 'fixed';
-            previewElement.style.top = '0';
-            previewElement.style.left = '0';
-            previewElement.style.width = '100%';
-            previewElement.style.height = '100%';
-            previewElement.style.backgroundColor = 'white';
-            previewElement.style.zIndex = '10000';
-            previewElement.style.padding = '20px';
-            previewElement.style.overflow = 'auto';
+            if (this.submitMode === 'daily') {
+                await this._printDaily();
+            } else {
+                await this._printWeekly();
+            }
             
-            document.body.appendChild(previewElement);
-            
-            await this._waitForRender();
-            
-            // 他の要素を一時的に非表示
-            const originalElements = document.querySelectorAll('body > *:not(#dailyPrintPreview)');
-            originalElements.forEach(el => {
-                el.style.display = 'none';
-            });
-            
-            window.print();
-            
-            // 元に戻す
-            originalElements.forEach(el => {
-                el.style.display = '';
-            });
-            
-            document.body.removeChild(previewElement);
-            this.hideDailySubmitModal();
+            this.hideSubmitModal();
             
         } catch (error) {
             console.error('Print error:', error);
             this.uiRenderer.showStatusMessage('❌ 印刷エラー: ' + error.message, 'error');
         }
+    }
+
+    /**
+     * 1日分の画像を出力（内部関数）
+     * @private
+     */
+    async _exportDailyAsImage() {
+        const previewElement = this._createDailyPreview(this.currentDayIndex);
+        document.body.appendChild(previewElement);
+        
+        await this._waitForRender();
+        
+        const canvas = await this._captureElementAsCanvas(previewElement);
+        const record = this.weekData.dailyRecords[this.currentDayIndex];
+        const date = new Date(record.date);
+        const filename = `diary-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}.png`;
+        
+        this._downloadCanvas(canvas, filename);
+        
+        document.body.removeChild(previewElement);
+    }
+
+    /**
+     * 週間の画像を出力（内部関数）
+     * @private
+     */
+    async _exportWeeklyAsImage() {
+        this.showPreview();
+        await this._waitForRender();
+        
+        const element = document.getElementById('previewContent');
+        element.classList.add('export-mode');
+        
+        const canvas = await this._captureElementAsCanvas(element);
+        this._downloadCanvas(canvas, `diary-${this.currentWeek}.png`);
+        
+        element.classList.remove('export-mode');
+    }
+
+    /**
+     * 1日分の画像をクリップボードにコピー（内部関数）
+     * @private
+     */
+    async _copyDailyImageToClipboard() {
+        const previewElement = this._createDailyPreview(this.currentDayIndex);
+        document.body.appendChild(previewElement);
+        
+        await this._waitForRender();
+        
+        const canvas = await this._captureElementAsCanvas(previewElement);
+        const blob = await this._canvasToBlob(canvas);
+        
+        await this._copyBlobToClipboard(blob);
+        
+        document.body.removeChild(previewElement);
+    }
+
+    /**
+     * 週間の画像をクリップボードにコピー（内部関数）
+     * @private
+     */
+    async _copyWeeklyImageToClipboard() {
+        this.showPreview();
+        await this._waitForRender();
+        
+        const element = document.getElementById('previewContent');
+        element.classList.add('export-mode');
+        
+        const canvas = await this._captureElementAsCanvas(element);
+        const blob = await this._canvasToBlob(canvas);
+        
+        await this._copyBlobToClipboard(blob);
+        
+        element.classList.remove('export-mode');
+    }
+
+    /**
+     * 1日分を印刷（内部関数）
+     * @private
+     */
+    async _printDaily() {
+        const previewElement = this._createDailyPreview(this.currentDayIndex);
+        previewElement.style.position = 'fixed';
+        previewElement.style.top = '0';
+        previewElement.style.left = '0';
+        previewElement.style.width = '100%';
+        previewElement.style.height = '100%';
+        previewElement.style.backgroundColor = 'white';
+        previewElement.style.zIndex = '10000';
+        previewElement.style.padding = '20px';
+        previewElement.style.overflow = 'auto';
+        
+        document.body.appendChild(previewElement);
+        
+        await this._waitForRender();
+        
+        // 他の要素を一時的に非表示
+        const originalElements = document.querySelectorAll('body > *:not(#dailyPrintPreview)');
+        originalElements.forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        window.print();
+        
+        // 元に戻す
+        originalElements.forEach(el => {
+            el.style.display = '';
+        });
+        
+        document.body.removeChild(previewElement);
+    }
+
+    /**
+     * 週間を印刷（内部関数）
+     * @private
+     */
+    async _printWeekly() {
+        window.print();
     }
 
     /**
@@ -1184,6 +1287,9 @@ class DiaryApp {
         container.className = 'preview-section export-mode';
         container.style.background = 'white';
         container.style.padding = '20px';
+        container.style.width = 'fit-content';
+        container.style.minWidth = '800px';
+        container.style.maxWidth = '1200px';
         
         // ヘッダー
         const header = document.createElement('div');
@@ -1334,11 +1440,13 @@ class DiaryApp {
      * @private
      */
     async _captureElementAsCanvas(element) {
-        // Calculate actual content width based on the table
+        // Calculate actual content dimensions
         const table = element.querySelector('.preview-table');
         const actualContentWidth = table ? table.offsetWidth : element.scrollWidth;
-        const exportWidth = actualContentWidth;
-        const exportHeight = element.scrollHeight;
+        
+        // Use offsetHeight for better accuracy, and add padding to ensure nothing is cut off
+        const exportWidth = Math.max(actualContentWidth, element.offsetWidth);
+        const exportHeight = Math.max(element.scrollHeight, element.offsetHeight);
         
         const options = {
             scale: APP_CONSTANTS.EXPORT_SCALE,

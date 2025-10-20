@@ -1583,8 +1583,8 @@ select.form-control {
     }
 }
 
-/* Daily submit modal */
-.daily-submit-modal {
+/* Submit modal (for both daily and weekly submission) */
+.submit-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -1597,7 +1597,7 @@ select.form-control {
     z-index: 1000;
 }
 
-.daily-submit-content {
+.submit-content {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
     padding: var(--space-24);
@@ -1608,7 +1608,7 @@ select.form-control {
     box-shadow: var(--shadow-lg);
 }
 
-.daily-submit-header {
+.submit-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1617,12 +1617,12 @@ select.form-control {
     border-bottom: 1px solid var(--color-card-border-inner);
 }
 
-.daily-submit-header h3 {
+.submit-header h3 {
     margin: 0;
     font-size: var(--font-size-xl);
 }
 
-.daily-submit-info {
+.submit-info {
     background: var(--color-bg-1);
     border-radius: var(--radius-base);
     padding: var(--space-12);
@@ -1630,20 +1630,20 @@ select.form-control {
     text-align: center;
 }
 
-.daily-submit-info p {
+.submit-info p {
     margin: 0;
     font-weight: var(--font-weight-semibold);
     color: var(--color-primary);
 }
 
-.daily-submit-actions {
+.submit-actions {
     display: flex;
     flex-direction: column;
     gap: var(--space-8);
     margin-bottom: var(--space-16);
 }
 
-.daily-submit-footer {
+.submit-footer {
     border-top: 1px solid var(--color-card-border-inner);
     padding-top: var(--space-16);
 }

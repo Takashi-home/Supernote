@@ -40,11 +40,7 @@
 
         <div class="export-actions export-actions--top">
             <button class="btn btn--primary btn--sm" onclick="diaryApp.manualSave()" id="saveButton">💾 保存</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyEvaluationTable()">📋 評価表</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyReflectionTable()">📋 感想</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyImageToClipboard()">📋 画像コピー</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.exportAsImage()">📷 画像</button>
-            <button class="btn btn--outline btn--sm" onclick="window.print()">🖨️ 印刷</button>
+            <button class="btn btn--outline btn--sm" onclick="diaryApp.showWeeklySubmitModal()">📤 週間提出</button>
         </div>
 
         <!-- 日記入力画面 -->
@@ -63,11 +59,7 @@
         <!-- 下部ボタン -->
         <div class="export-actions export-actions--bottom">
             <button class="btn btn--primary btn--sm" onclick="diaryApp.manualSave()" id="saveButtonBottom">💾 保存</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyEvaluationTable()">📋 評価表</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyReflectionTable()">📋 感想</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.copyImageToClipboard()">📋 画像コピー</button>
-            <button class="btn btn--outline btn--sm" onclick="diaryApp.exportAsImage()">📷 画像</button>
-            <button class="btn btn--outline btn--sm" onclick="window.print()">🖨️ 印刷</button>
+            <button class="btn btn--outline btn--sm" onclick="diaryApp.showWeeklySubmitModal()">📤 週間提出</button>
         </div>
     </div>
 
@@ -121,38 +113,38 @@
         </div>
     </div>
 
-    <!-- 1日提出モーダル -->
-    <div id="dailySubmitModal" class="daily-submit-modal hidden">
-        <div class="daily-submit-content">
-            <div class="daily-submit-header">
-                <h3>📤 この日を提出</h3>
-                <button class="close-btn" onclick="diaryApp.hideDailySubmitModal()">×</button>
+    <!-- 提出モーダル（日単位・週単位共通） -->
+    <div id="submitModal" class="submit-modal hidden">
+        <div class="submit-content">
+            <div class="submit-header">
+                <h3 id="submitModalTitle">📤 提出</h3>
+                <button class="close-btn" onclick="diaryApp.hideSubmitModal()">×</button>
             </div>
 
-            <div class="daily-submit-info">
-                <p id="dailySubmitDate">選択中: 10/15 (火)</p>
+            <div class="submit-info">
+                <p id="submitDate">選択中</p>
             </div>
 
-            <div class="daily-submit-actions">
-                <button class="btn btn--primary btn--full-width" onclick="diaryApp.exportDailyAsImage()">
+            <div class="submit-actions">
+                <button class="btn btn--primary btn--full-width" onclick="diaryApp.submitAsImage()">
                     📷 画像として保存
                 </button>
-                <button class="btn btn--outline btn--full-width" onclick="diaryApp.copyDailyImageToClipboard()">
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.submitCopyImage()">
                     📋 画像をコピー
                 </button>
-                <button class="btn btn--outline btn--full-width" onclick="diaryApp.copyDailyEvaluationTable()">
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.submitCopyEvaluation()">
                     📋 評価表をコピー (TSV)
                 </button>
-                <button class="btn btn--outline btn--full-width" onclick="diaryApp.copyDailyReflection()">
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.submitCopyReflection()">
                     📋 感想をコピー (TSV)
                 </button>
-                <button class="btn btn--outline btn--full-width" onclick="diaryApp.printDaily()">
+                <button class="btn btn--outline btn--full-width" onclick="diaryApp.submitPrint()">
                     🖨️ 印刷
                 </button>
             </div>
 
-            <div class="daily-submit-footer">
-                <button class="btn btn--secondary btn--full-width" onclick="diaryApp.hideDailySubmitModal()">キャンセル</button>
+            <div class="submit-footer">
+                <button class="btn btn--secondary btn--full-width" onclick="diaryApp.hideSubmitModal()">キャンセル</button>
             </div>
         </div>
     </div>
