@@ -1017,7 +1017,10 @@ class DiaryApp {
      * @private
      */
     async _captureElementAsCanvas(element) {
-        const exportWidth = Math.max(element.scrollWidth, APP_CONSTANTS.EXPORT_MIN_WIDTH);
+        // Calculate actual content width based on the table
+        const table = element.querySelector('.preview-table');
+        const actualContentWidth = table ? table.offsetWidth : element.scrollWidth;
+        const exportWidth = actualContentWidth;
         const exportHeight = element.scrollHeight;
         
         const options = {
@@ -1027,7 +1030,7 @@ class DiaryApp {
             backgroundColor: '#ffffff',
             width: exportWidth,
             height: exportHeight,
-            windowWidth: APP_CONSTANTS.EXPORT_WINDOW_WIDTH,
+            windowWidth: exportWidth,
             windowHeight: exportHeight,
             scrollX: 0,
             scrollY: 0,
