@@ -674,6 +674,68 @@ class DiaryApp {
             this.markAsChanged();
         }
     }
+    
+    /**
+     * 評価グリッドから項目を削除
+     * @param {number} index - 項目のインデックス
+     */
+    removeItemFromEval(index) {
+        if (confirm('この項目を削除しますか？関連するすべてのデータも削除されます。')) {
+            const removedItem = this.evaluationItems[index];
+            
+            // weekDataから該当項目を削除
+            this.weekData.dailyRecords.forEach(record => {
+                delete record.responses[removedItem];
+            });
+            
+            this.evaluationItems.splice(index, 1);
+            this.lastUsedItems = [...this.evaluationItems];
+            this._updateWeekDataWithNewItems();
+            this.uiRenderer.renderDiary();
+            this.markAsChanged();
+            this.uiRenderer.showStatusMessage('項目を削除しました', 'success');
+        }
+    }
+    
+    /**
+     * 項目名を更新
+     * @param {number} index - 項目のインデックス
+     * @param {string} newName - 新しい項目名
+     */
+    updateItemName(index, newName) {
+        const currentItem = this.evaluationItems[index];
+        const trimmedNewName = newName.trim();
+        
+        if (trimmedNewName === currentItem) {
+            return; // 変更なし
+        }
+        
+        // 重複チェック（自分以外）
+        const isDuplicate = this.evaluationItems.some((item, i) => 
+            i !== index && item === trimmedNewName
+        );
+        
+        if (isDuplicate) {
+            this.uiRenderer.showStatusMessage('この項目は既に存在します', 'error');
+            this.uiRenderer.renderDiary(); // 元に戻す
+            return;
+        }
+        
+        // weekDataの全レコードで項目名を更新
+        this.weekData.dailyRecords.forEach(record => {
+            if (record.responses[currentItem] !== undefined) {
+                record.responses[trimmedNewName] = record.responses[currentItem];
+                delete record.responses[currentItem];
+            }
+        });
+        
+        this.evaluationItems[index] = trimmedNewName;
+        this.lastUsedItems = [...this.evaluationItems];
+        this._updateWeekDataWithNewItems();
+        this.uiRenderer.renderDiary();
+        this.markAsChanged();
+        this.uiRenderer.showStatusMessage('項目名を更新しました', 'success');
+    }
 
     /**
      * 新しい項目でweekDataを更新
