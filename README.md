@@ -51,14 +51,8 @@
 ### 2. Personal Access Tokenの生成
 
 1. GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
-2. "Generate new token (classic)" をクリック
-3. 以下のスコープを選択：
-   - ✅ `repo` - Full control of private repositories
-     - ✅ `repo:status`
-     - ✅ `repo_deployment`
-     - ✅ `public_repo`
-     - ✅ `repo:invite`
-   - ✅ `admin:repo_hook` - Full control of repository hooks
+2. "Generate new token" をクリック
+3. スコープはContentsのread and write
 4. トークンをコピーして保存（後で使用）
 
 ### 3. アプリケーションの設定
@@ -76,8 +70,8 @@
 
 1. 設定画面で評価項目を編集
 2. 不要な項目を削除、必要な項目を追加
-3. ドラッグ＆ドロップで並び替え可能
-
+3. ドラッグ＆ドロップで並び替え可能(未実装)
+4. データのない新規週は直前に表示されていた週の項目を表示
 ## 使い方
 
 ### 基本操作
@@ -98,6 +92,7 @@
    - 「📋 評価表」をクリック
    - Slackに貼り付けると表形式で表示される
    - 「📋 感想」で感想だけをコピー可能
+   - PC版Slackで動作を確認。スマホのSlackアプリは表貼り付けに非対応の可能性あり
 
 2. **画像として共有**:
    - 「📷 画像」をクリック
