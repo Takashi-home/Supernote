@@ -152,7 +152,7 @@ class GitHubSync {
         const repo = this.app.syncSettings.repoName;
         
         if (!token || !owner || !repo) {
-            console.log('GitHub token not configured');
+            console.log('GitHub configuration incomplete (missing token, owner, or repo)');
             return false;
         }
         
@@ -185,8 +185,14 @@ class GitHubSync {
                 return false;
             }
         } catch (e) {
+            // ネットワークエラーの場合は失敗として扱う
+            if (e instanceof TypeError && e.message.includes('Failed to fetch')) {
+                console.error('Network error while checking file:', e);
+                return false;
+            }
+            // その他のエラーはファイルが存在しないものとして扱う
             console.log('File does not exist, nothing to delete');
-            return true; // ファイルが存在しない場合は成功とみなす
+            return true;
         }
 
         // ファイルを削除

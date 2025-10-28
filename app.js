@@ -1071,9 +1071,9 @@ class DiaryApp {
             const success = await this.githubSync.deleteWeekData(this.currentWeek);
             
             if (success) {
-                // ローカルのweekDataをクリア
+                // ローカルのweekDataをクリアして新規週データとして初期化
                 this.weekData = null;
-                this.initializeWeekData();
+                this.initializeWeekData(); // 空の週データを新規作成
                 this._renderCurrentView();
                 
                 // 未保存の変更をリセット
