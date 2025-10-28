@@ -1040,6 +1040,61 @@ class DiaryApp {
         }
     }
 
+    // ==================== 週データ削除 ====================
+
+    /**
+     * 週データ削除確認モーダルを表示
+     */
+    showDeleteConfirmModal() {
+        const modal = document.getElementById('deleteConfirmModal');
+        const message = document.getElementById('deleteConfirmMessage');
+        message.textContent = `週 ${this.currentWeek} のデータを削除してもよろしいですか？`;
+        modal.classList.remove('hidden');
+    }
+
+    /**
+     * 週データ削除確認モーダルを非表示
+     */
+    hideDeleteConfirmModal() {
+        document.getElementById('deleteConfirmModal').classList.add('hidden');
+    }
+
+    /**
+     * 週データの削除を実行
+     */
+    async confirmDeleteWeek() {
+        this.hideDeleteConfirmModal();
+        this.uiRenderer.showLoading();
+        
+        try {
+            // GitHubからデータを削除
+            const success = await this.githubSync.deleteWeekData(this.currentWeek);
+            
+            if (success) {
+                // ローカルのweekDataをクリアして新規週データとして初期化
+                this.weekData = null;
+                this.initializeWeekData(); // 空の週データを新規作成
+                this._renderCurrentView();
+                
+                // 未保存の変更をリセット
+                this.hasUnsavedChanges = false;
+                this.updateSaveButtonState();
+                
+                this.uiRenderer.showStatusMessage('✅ 週データを削除しました', 'success');
+                
+                // 設定画面を閉じて日記画面に戻る
+                this.hideSettings();
+            } else {
+                this.uiRenderer.showStatusMessage('❌ 削除に失敗しました', 'error');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            this.uiRenderer.showStatusMessage('❌ 削除エラー: ' + error.message, 'error');
+        } finally {
+            this.uiRenderer.hideLoading();
+        }
+    }
+
     // ==================== 画像出力 ====================
 
     /**
