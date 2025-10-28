@@ -318,6 +318,19 @@ a:hover {
   background: #f57c00;
 }
 
+.btn--danger {
+  background: var(--color-error);
+  color: white;
+}
+
+.btn--danger:hover {
+  background: rgba(var(--color-red-500-rgb), 0.9);
+}
+
+.btn--danger:active {
+  background: rgba(var(--color-red-500-rgb), 0.8);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.8; }
@@ -1652,6 +1665,84 @@ select.form-control {
 .daily-entry-submit-btn {
     margin-top: var(--space-12);
     width: 100%;
+}
+
+/* Delete confirmation modal */
+.delete-confirm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.delete-confirm-content {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: var(--space-24);
+    max-width: 400px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+}
+
+.delete-confirm-header {
+    margin-bottom: var(--space-16);
+    padding-bottom: var(--space-12);
+    border-bottom: 1px solid var(--color-card-border-inner);
+}
+
+.delete-confirm-header h3 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    color: var(--color-error);
+}
+
+.delete-confirm-body {
+    margin-bottom: var(--space-20);
+}
+
+.delete-confirm-body p {
+    margin: 0 0 var(--space-8) 0;
+    color: var(--color-text);
+}
+
+.delete-confirm-warning {
+    color: var(--color-error);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+}
+
+.delete-confirm-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+/* Danger zone in settings */
+.danger-zone {
+    margin-top: var(--space-24);
+    padding: var(--space-16);
+    background: rgba(var(--color-red-500-rgb), 0.05);
+    border: 1px solid rgba(var(--color-red-500-rgb), 0.2);
+    border-radius: var(--radius-base);
+}
+
+.danger-zone h4 {
+    margin-top: 0;
+    margin-bottom: var(--space-8);
+    color: var(--color-error);
+    font-size: var(--font-size-lg);
+}
+
+.danger-zone-description {
+    margin-bottom: var(--space-12);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
 }
 
 @media print {

@@ -103,6 +103,12 @@
                 <div id="connectionStatus"></div>
             </div>
 
+            <div class="danger-zone">
+                <h4>データ管理</h4>
+                <p class="danger-zone-description">現在表示している週のデータを削除します。この操作は取り消せません。</p>
+                <button class="btn btn--danger btn--sm" onclick="diaryApp.showDeleteConfirmModal()">🗑️ 現在の週データを削除</button>
+            </div>
+
             <div class="actions">
                 <button class="btn btn--outline" onclick="diaryApp.resetToDefaults()">デフォルトに戻す</button>
                 <button class="btn btn--primary" onclick="diaryApp.saveSettings()">設定保存</button>
@@ -150,6 +156,25 @@
 
             <div class="submit-footer">
                 <button class="btn btn--secondary btn--full-width" onclick="diaryApp.hideSubmitModal()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 週データ削除確認モーダル -->
+    <div id="deleteConfirmModal" class="delete-confirm-modal hidden">
+        <div class="delete-confirm-content">
+            <div class="delete-confirm-header">
+                <h3>⚠️ 週データの削除</h3>
+            </div>
+
+            <div class="delete-confirm-body">
+                <p id="deleteConfirmMessage">この週のデータを削除してもよろしいですか？</p>
+                <p class="delete-confirm-warning">この操作は取り消せません。</p>
+            </div>
+
+            <div class="delete-confirm-actions">
+                <button class="btn btn--secondary btn--full-width" onclick="diaryApp.hideDeleteConfirmModal()">キャンセル</button>
+                <button class="btn btn--danger btn--full-width" onclick="diaryApp.confirmDeleteWeek()">削除する</button>
             </div>
         </div>
     </div>
