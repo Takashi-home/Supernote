@@ -24,6 +24,7 @@ const APP_CONSTANTS = {
     EXPORT_TIMEOUT: 60000,
     STORAGE_KEY_SETTINGS: 'diary-github-settings',
     STORAGE_KEY_PARENTS_COMMENT: 'diary-show-parents-comment',
+    STORAGE_KEY_DEFAULT_ITEMS: 'diary-default-items',
     DEFAULT_GOAL_INDEX: 0
 };
 
@@ -795,6 +796,25 @@ class DiaryApp {
         }
     }
 
+    /**
+     * 現在の週の評価項目をデフォルトとして保存する
+     */
+    setCurrentItemsAsDefault() {
+        if (confirm('現在の週の項目をデフォルトに設定しますか？')) {
+            const goalLabel = this.defaultItems[APP_CONSTANTS.DEFAULT_GOAL_INDEX] || '今週の目標';
+            this.defaultItems = [goalLabel, ...this.evaluationItems];
+            try {
+                localStorage.setItem(
+                    APP_CONSTANTS.STORAGE_KEY_DEFAULT_ITEMS,
+                    JSON.stringify(this.defaultItems)
+                );
+            } catch (error) {
+                console.error('Failed to save default items to localStorage:', error);
+            }
+            this.uiRenderer.showStatusMessage('現在の項目をデフォルトに設定しました', 'success');
+        }
+    }
+
     // ==================== 設定管理 ====================
 
     saveSettings() {
@@ -838,6 +858,16 @@ class DiaryApp {
             }
         } catch (error) {
             console.error('Failed to load settings from localStorage:', error);
+        }
+
+        try {
+            const savedDefaultItems = localStorage.getItem(APP_CONSTANTS.STORAGE_KEY_DEFAULT_ITEMS);
+            if (savedDefaultItems) {
+                this.defaultItems = JSON.parse(savedDefaultItems);
+                console.log('Default items loaded from localStorage');
+            }
+        } catch (error) {
+            console.error('Failed to load default items from localStorage:', error);
         }
     }
 

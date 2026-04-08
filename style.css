@@ -1470,6 +1470,10 @@ select.form-control {
     margin-top: var(--space-12);
 }
 
+.set-default-form {
+    margin-top: var(--space-8);
+}
+
 .github-sync {
     background: var(--color-bg-1);
     border-radius: var(--radius-base);
